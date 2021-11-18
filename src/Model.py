@@ -76,7 +76,7 @@ class JMAK:
             if verbosity > 0:
                 print('Estimated parameters for maximum fraction %.2f are\nm=\t%.3f\nbeta=\t%.5f' % (mf, m, beta))
                 if verbosity > 1:
-                    ax = fig.add_subplot(num_rows, num_cols, num)
+                    ax = fig.add_subplot(num_rows, num_cols, num + 1)
                     self._plot_in_logspace(ax, m=m, beta=beta, max_frac=mf)
 
             fval.append(f)
