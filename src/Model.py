@@ -43,7 +43,7 @@ class JMAK:
                 result.fvalue  # fvalue
             )
         else:
-            return None, None, None
+            return np.nan, np.nan, np.nan
 
     def estimate_parameters(
             self,
