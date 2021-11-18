@@ -239,12 +239,6 @@ class RegionModel:
         def plot_hist(param_x, param_y, a):
             hist, _, _ = np.histogram2d(param_y, param_x, bins=bins)
             heatmap = a.imshow(hist, norm=cls.PowerNorm(gamma=norm_gamma), cmap=color, origin='lower')
-            # for i in range(hist.shape[0]):
-            #     for j in range(hist.shape[1]):
-            #         if hist[i, j] == 0:
-            #             continue
-            #         a.text(j, i, '%i' % hist[i, j], ha='center', va='center', color=fcolor, fontsize=8)
-
             a.set_xticks(np.concatenate([np.arange(0, hist.shape[0], 5), hist.shape[0]], axis=None))
             a.set_yticks(np.concatenate([np.arange(0, hist.shape[1], 5), hist.shape[1]], axis=None))
 
