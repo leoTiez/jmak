@@ -1,0 +1,9 @@
+/.ipynb_checkpoints
+/data
+/function
+/plots*
+*.pdf
+*Jupyter*
+.idea
+__pycache__
+figures
