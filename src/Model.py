@@ -3,6 +3,7 @@ import pandas as pd
 import statsmodels.api as smapi
 import matplotlib.pyplot as plt
 import matplotlib.colors as cls
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 from abc import ABC
 import multiprocessing
 import warnings
@@ -181,15 +182,13 @@ class RegionModel:
                     t, d, names[num] if names is not None else '',
                     min_f, max_f, delta_f, verbosity-1, figsize, save_fig, save_prefix))
         else:
-            if verbosity > 0:
-                warnings.warn('Verbosity is larger than 0 but multiprocessing is used. Ignore verbosity flag.')
             num_cpus = np.minimum(multiprocessing.cpu_count() - 1, num_cpus)
             with multiprocessing.Pool(processes=num_cpus) as parallel:
                 models = []
                 for num, (t, d) in enumerate(zip(self.time_points, self.data_points)):
                     models.append(
                         parallel.apply_async(self.iteration, args=(t, d, names[num] if names is not None else '',
-                                                              min_f, max_f, delta_f, 0, figsize,
+                                                              min_f, max_f, delta_f, verbosity-1, figsize,
                                                               save_fig, save_prefix,))
                     )
                 parallel.close()
@@ -239,12 +238,12 @@ class RegionModel:
     ):
         def plot_hist(param_x, param_y, a):
             hist, _, _ = np.histogram2d(param_y, param_x, bins=bins)
-            a.imshow(hist, norm=cls.PowerNorm(gamma=norm_gamma), cmap=color, origin='lower')
-            for i in range(hist.shape[0]):
-                for j in range(hist.shape[1]):
-                    if hist[i, j] == 0:
-                        continue
-                    a.text(j, i, '%i' % hist[i, j], ha='center', va='center', color=fcolor, fontsize=8)
+            heatmap = a.imshow(hist, norm=cls.PowerNorm(gamma=norm_gamma), cmap=color, origin='lower')
+            # for i in range(hist.shape[0]):
+            #     for j in range(hist.shape[1]):
+            #         if hist[i, j] == 0:
+            #             continue
+            #         a.text(j, i, '%i' % hist[i, j], ha='center', va='center', color=fcolor, fontsize=8)
 
             a.set_xticks(np.concatenate([np.arange(0, hist.shape[0], 5), hist.shape[0]], axis=None))
             a.set_yticks(np.concatenate([np.arange(0, hist.shape[1], 5), hist.shape[1]], axis=None))
@@ -260,23 +259,34 @@ class RegionModel:
                     np.max(param_y),
                     np.arange(0, hist.shape[0], 5).size + 1)])
 
+            return heatmap
+
         params_m = list(self.get_model_parameter('m'))
         params_beta = list(self.get_model_parameter('beta'))
         params_max_frac = list(self.get_model_parameter('max_frac'))
         fig, ax = plt.subplots(3, 1, figsize=figsize)
 
-        plot_hist(params_m, params_beta, ax[0])
-        plot_hist(params_m, params_max_frac, ax[1])
-        plot_hist(params_max_frac, params_beta, ax[2])
+        hm_m_beta = plot_hist(params_m, params_beta, ax[0])
+        hm_m_mf = plot_hist(params_m, params_max_frac, ax[1])
+        hm_mf_beta = plot_hist(params_max_frac, params_beta, ax[2])
 
         ax[0].set_xlabel('m')
         ax[0].set_ylabel(r'$\beta$')
+        divider = make_axes_locatable(ax[0])
+        cax = divider.append_axes('right', size='5%', pad=0.05)
+        fig.colorbar(hm_m_beta, cax=cax, orientation='vertical')
 
         ax[1].set_xlabel('m')
         ax[1].set_ylabel('Maximum fraction')
+        divider = make_axes_locatable(ax[1])
+        cax = divider.append_axes('right', size='5%', pad=0.05)
+        fig.colorbar(hm_m_mf, cax=cax, orientation='vertical')
 
         ax[2].set_xlabel('Maximum fraction')
         ax[2].set_ylabel(r'$\beta$')
+        divider = make_axes_locatable(ax[2])
+        cax = divider.append_axes('right', size='5%', pad=0.05)
+        fig.colorbar(hm_mf_beta, cax=cax, orientation='vertical')
 
         fig.suptitle('%s\nParameter distribution' % self.name)
         fig.tight_layout()
