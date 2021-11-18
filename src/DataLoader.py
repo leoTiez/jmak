@@ -246,6 +246,21 @@ def load_chrom_data(
             end_igr_list.extend([(chrom, e) for e in end_igr])
             data_transcriptome = data_transcriptome.append(transcriptome_chrom)
 
+        trans_20 = [i for k in trans[::3] for i in k]
+        trans_60 = [i for k in trans[1::3] for i in k]
+        trans_120 = [i for k in trans[2::3] for i in k]
+        trans = np.asarray([trans_20, trans_60, trans_120])
+
+        ntrans_20 = [i for k in non_trans[::3] for i in k]
+        ntrans_60 = [i for k in non_trans[1::3] for i in k]
+        ntrans_120 = [i for k in non_trans[2::3] for i in k]
+        non_trans = np.asarray([ntrans_20, ntrans_60, ntrans_120])
+
+        igr_20 = [i for k in igr[::3] for i in k]
+        igr_60 = [i for k in igr[1::3] for i in k]
+        igr_120 = [i for k in igr[2::3] for i in k]
+        igr = np.asarray([igr_20, igr_60, igr_120])
+
         data_transcriptome = data_transcriptome.reset_index(drop=True)
         shuffle_idx_trans = np.arange(len(data_transcriptome.index))
         shuffle_idx_igr = np.arange(len(start_igr_list))
@@ -254,9 +269,9 @@ def load_chrom_data(
         np.random.shuffle(shuffle_idx_trans)
         np.random.shuffle(shuffle_idx_igr)
         return (
-            np.asarray(trans).transpose(1, 0, 2)[shuffle_idx_trans].reshape(len(shuffle_idx_trans), -1),
-            np.asarray(non_trans).transpose(1, 0, 2)[shuffle_idx_trans].reshape(len(shuffle_idx_trans), -1),
-            np.asarray(igr).transpose(1, 0, 2)[shuffle_idx_igr].reshape(len(shuffle_idx_igr), -1),
+            trans.transpose(1, 0, 2)[shuffle_idx_trans].reshape(len(shuffle_idx_trans), -1),
+            non_trans.transpose(1, 0, 2)[shuffle_idx_trans].reshape(len(shuffle_idx_trans), -1),
+            igr.transpose(1, 0, 2)[shuffle_idx_igr].reshape(len(shuffle_idx_igr), -1),
             np.asarray(start_igr_list)[shuffle_idx_igr].tolist(),
             np.asarray(end_igr_list)[shuffle_idx_igr].tolist(),
             data_transcriptome.reindex(shuffle_idx_trans)
