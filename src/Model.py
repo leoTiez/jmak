@@ -12,13 +12,14 @@ from src.Kernel import *
 
 
 class JMAK:
-    def __init__(self, time_points, data_points, m=None, max_frac=None, beta=None, name=''):
+    def __init__(self, time_points, data_points, m=None, max_frac=None, beta=None, name='', min_m=.01):
         self.time_points = time_points.reshape(-1)
         self.data_points = data_points.reshape(-1)
         self.m = m
         self.max_frac = max_frac
         self.beta = beta
         self.name = name
+        self.min_m = min_m
 
     def repair_fraction(self, time):
         if self.m is None or self.max_frac is None or self.beta is None:
@@ -35,11 +36,14 @@ class JMAK:
             smapi.add_constant(np.log(self.time_points))
         )
         result = lin_est.fit()
-        return (
-            result.params[1],  # shape
-            np.exp(result.params[0] / result.params[1]),  # scale
-            result.fvalue  # fvalue
-        )
+        if result.params[1] > self.min_m:
+            return (
+                result.params[1],  # shape
+                np.exp(result.params[0] / result.params[1]),  # scale
+                result.fvalue  # fvalue
+            )
+        else:
+            return None, None, None
 
     def estimate_parameters(
             self,
@@ -146,7 +150,7 @@ class RegionModel:
         self.name = name
 
     @staticmethod
-    def iteration(i, time, data, n, min_f, max_f, delta_f, verbosity, figsize, save_fig, save_prefix):
+    def iteration(time, data, n, min_f, max_f, delta_f, verbosity, figsize, save_fig, save_prefix):
         model = JMAK(time, data, name=n)
         model.estimate_parameters(
             min_f,
@@ -174,7 +178,7 @@ class RegionModel:
         if num_cpus <= 0:
             for num, (t, d) in enumerate(zip(self.time_points, self.data_points)):
                 self.models.append(self.iteration(
-                    num, t, d, names[num] if names is not None else '',
+                    t, d, names[num] if names is not None else '',
                     min_f, max_f, delta_f, verbosity-1, figsize, save_fig, save_prefix))
         else:
             if verbosity > 0:
@@ -184,7 +188,7 @@ class RegionModel:
                 models = []
                 for num, (t, d) in enumerate(zip(self.time_points, self.data_points)):
                     models.append(
-                        parallel.apply_async(self.iteration, args=(num, t, d, names[num] if names is not None else '',
+                        parallel.apply_async(self.iteration, args=(t, d, names[num] if names is not None else '',
                                                               min_f, max_f, delta_f, 0, figsize,
                                                               save_fig, save_prefix,))
                     )
