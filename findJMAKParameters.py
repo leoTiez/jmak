@@ -71,7 +71,7 @@ def main():
     heatmap_color_trans = 'Greens'
     heatmap_color_ntrans = 'Oranges'
     heatmap_color_igr = 'Blues'
-    verbosity = 2
+    verbosity = 3
     save_fig = True
 
     train_data, test_data = load_chrom_data(train_chrom_list=train_chrom, test_chrom_list=test_chrom)
