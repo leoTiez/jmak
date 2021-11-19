@@ -225,7 +225,7 @@ def load_chrom_data(
         ],
         used_transcriptomes=[True, False, False],
         ref_genome_path='data/ref/SacCer3.fa',
-        seed=42
+        shuffle_data=False,
 ):
     def get_data(chrom_list):
         trans, non_trans, igr = [], [], []
@@ -264,10 +264,10 @@ def load_chrom_data(
         data_transcriptome = data_transcriptome.reset_index(drop=True)
         shuffle_idx_trans = np.arange(len(data_transcriptome.index))
         shuffle_idx_igr = np.arange(len(start_igr_list))
-        if seed is not None:
-            np.random.seed(seed)
-        np.random.shuffle(shuffle_idx_trans)
-        np.random.shuffle(shuffle_idx_igr)
+        if shuffle_data:
+            np.random.shuffle(shuffle_idx_trans)
+            np.random.shuffle(shuffle_idx_igr)
+
         return (
             trans.transpose(1, 0, 2)[shuffle_idx_trans].reshape(len(shuffle_idx_trans), -1),
             non_trans.transpose(1, 0, 2)[shuffle_idx_trans].reshape(len(shuffle_idx_trans), -1),
@@ -312,4 +312,86 @@ def create_time_data(num_pos, num_datapoints):
         np.ones(num_pos) * 60,
         np.ones(num_pos) * 120
     ), axis=None), num_datapoints).reshape(num_datapoints, -1)
+
+
+def load_slam(
+        train_chrom_list=['chrIII'],
+        test_chrom_list=['chrII'],
+        slam_paths=[
+            'data/seq/nouv_slam_mins_new.bw',
+            'data/seq/nouv_slam_plus_new.bw',
+            'data/seq/20m_slam_mins_new.bw',
+            'data/seq/20m_slam_plus_new.bw',
+            'data/seq/120m_slam_mins_new.bw',
+            'data/seq/120m_slam_plus_new.bw'
+        ],
+        transcriptome_path_list=[
+            'data/ref/trans_high.txt',
+            'data/ref/trans_medium.txt',
+            'data/ref/trans_low.txt',
+        ],
+        used_transcriptomes=[True, False, False],
+        trans_def=None,
+        shuffle_data=False
+):
+    def get_data(chrom_list):
+        slam_nouv_new, slam_20m_new, slam_120m_new = [], [], []
+        for chrom in chrom_list:
+            chrom_data = [np.nan_to_num(d.values(chrom, 0, d.chroms(chrom))) for d in bw_objs]
+            transcriptome_chrom = transcriptome[transcriptome['chr'] == chrom]
+            for i in transcriptome_chrom.iterrows():
+                i = i[1]
+                start = i['start'] - 1
+                end = i['end'] - 1
+                read = '+'
+                if start > end:
+                    end_temp = start
+                    start = end
+                    end = end_temp
+                    read = '-'
+                if read == '-':
+                    cd = chrom_data[::2]
+                else:
+                    cd = chrom_data[1::2]
+
+                slam_nouv_new.append(np.nanmean(cd[0][start:end]))
+                slam_20m_new.append(np.nanmean(cd[1][start:end]))
+                slam_120m_new.append(np.nanmean(cd[2][start:end]))
+
+        shuffle_idx = np.arange(len(slam_20m_new))
+        if shuffle_data:
+            np.random.shuffle(shuffle_idx)
+
+        return (
+                np.asarray(slam_nouv_new)[shuffle_idx],
+                np.asarray(slam_20m_new)[shuffle_idx],
+                np.asarray(slam_120m_new)[shuffle_idx]
+            )
+
+    for num, path in enumerate(slam_paths):
+        slam_paths[num] = transform_path(path)
+    for num, path in enumerate(transcriptome_path_list):
+        transcriptome_path_list[num] = transform_path(path)
+
+    ht, mt, lt = load_transcriptome(*transcriptome_path_list)
+    transcriptome = pd.DataFrame(columns=ht.columns)
+    for is_transcriptome, t in zip(used_transcriptomes, [ht, mt, lt]):
+        if is_transcriptome:
+            transcriptome = transcriptome.append(t)
+
+    bw_objs = []
+    for bw in slam_paths:
+        bw_objs.append(reader.load_big_file(bw, rel_path='', is_abs_path=True))
+
+    # Prepare train data
+    train_data = get_data(train_chrom_list)
+
+    # Prepare test data
+    if test_chrom_list:
+        test_data = get_data(test_chrom_list)
+    else:
+        test_data = None
+
+    return train_data, test_data
+
 
