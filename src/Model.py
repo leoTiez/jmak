@@ -13,9 +13,25 @@ from src.Kernel import *
 
 
 class JMAK:
-    def __init__(self, time_points, data_points, m=None, max_frac=None, beta=None, name='', min_m=.01):
-        self.time_points = time_points.reshape(-1)
-        self.data_points = data_points.reshape(-1)
+    def __init__(
+            self,
+            time_points,
+            data_points,
+            m=None,
+            max_frac=None,
+            beta=None,
+            name='',
+            min_m=.01,
+            handle_stationary=False
+    ):
+        self.time_points = np.asarray(time_points)
+        self.data_points = np.asarray(data_points)
+        if handle_stationary:
+            if np.all(self.data_points[-1] == self.data_points[-2]):
+                self.data_points = self.data_points[:-1]
+                self.time_points = self.time_points[:-1]
+        self.time_points = self.time_points.reshape(-1)
+        self.data_points = self.data_points.reshape(-1)
         self.m = m
         self.max_frac = max_frac
         self.beta = beta
@@ -32,11 +48,17 @@ class JMAK:
         return (1 - np.exp(- np.power(self.beta * time, self.m))) * self.max_frac
 
     def _estimate_shape_scale(self, max_frac):
+        if np.any(max_frac < self.data_points):
+            return np.nan, np.nan, np.nan
+        dp = self.data_points.copy()
+        dp[dp == max_frac] -= np.finfo('float').eps
+        dp[dp == 0] += np.finfo('float').eps
         lin_est = smapi.OLS(
-            np.log(np.log(1. / (1 - (np.asarray(self.data_points) - np.finfo('float').eps) / max_frac))),
+            np.log(np.log(1. / (1 - dp / max_frac))),
             smapi.add_constant(np.log(self.time_points))
         )
         result = lin_est.fit()
+
         if result.params[1] > self.min_m:
             return (
                 result.params[1],  # shape
@@ -66,18 +88,21 @@ class JMAK:
         beta_est = []
         m_est = []
         if verbosity > 1:
-            fig = plt.figure(figsize=figsize)
-            num_cols = int(np.sqrt((max_f - min_f) / delta_f))
-            num_rows = int(np.ceil(((max_f - min_f) / delta_f) / num_cols))
+            num_cols = np.minimum(int(np.sqrt((max_f - min_f) / delta_f)), 3)
+            num_rows = np.minimum(int(np.ceil(((max_f - min_f) / delta_f) / num_cols)), 3)
+            fig, ax = plt.subplots(num_rows, num_cols, figsize=figsize)
+        counter = 0
+        ax_idx = []
         for num, mf in enumerate(np.arange(min_f, max_f + delta_f, delta_f)):
             if verbosity > 0:
                 print('Estimate parameters for maximum fraction set to %.2f' % mf)
             m, beta, f = self._estimate_shape_scale(mf)
             if verbosity > 0:
                 print('Estimated parameters for maximum fraction %.2f are\nm=\t%.3f\nbeta=\t%.5f' % (mf, m, beta))
-                if verbosity > 1:
-                    ax = fig.add_subplot(num_rows, num_cols, num + 1)
-                    self._plot_in_logspace(ax, m=m, beta=beta, max_frac=mf)
+                if verbosity > 1 and counter < num_cols * num_rows and not np.isnan(f):
+                    self._plot_in_logspace(ax.reshape(-1)[counter], m=m, beta=beta, max_frac=mf)
+                    ax.reshape(-1)[counter].set_title('Max fraction %.2f' % mf)
+                    counter += 1
 
             fval.append(f)
             beta_est.append(beta)
@@ -90,32 +115,41 @@ class JMAK:
             self.max_frac = None
             return
 
-        idx = np.argmax(fval[~np.isnan(fval)])
-        self.beta = np.asarray(beta_est)[~np.isnan(fval)][idx]
-        self.m = np.asarray(m_est)[~np.isnan(fval)][idx]
-        self.max_frac = np.arange(min_f, max_f + delta_f, delta_f)[~np.isnan(fval)][idx]
+        mask = ~np.isnan(fval)
+        idx = np.argmax(fval[mask])
+        self.beta = np.asarray(beta_est)[mask][idx]
+        self.m = np.asarray(m_est)[mask][idx]
+        self.max_frac = np.arange(min_f, max_f + delta_f, delta_f)[mask][idx]
 
         if verbosity > 1:
+            if idx < num_cols * num_rows:
+                for spine in ax.reshape(-1)[idx].spines.values():
+                    spine.set_edgecolor('red')
+
+            fig.suptitle('Model %s' % self.name)
+            fig.tight_layout()
             if save_fig:
-                directory = validate_dir('figures/data_models')
+                directory = validate_dir('figures/data_models/jmak')
                 fig.savefig('%s/%s_model_fitting.png' % (directory, save_prefix))
                 plt.close('all')
             else:
                 plt.show()
 
     def _plot_in_logspace(self, ax, m, beta, max_frac):
+        dp = self.data_points.copy()
+        dp[dp == 0] += np.finfo('float').eps
+        dp[dp == 1] -= np.finfo('float').eps
         ax.scatter(
             np.log(self.time_points),
-            np.log(np.log(1. / (1 - (np.asarray(self.data_points) - np.finfo('float').eps) / max_frac))),
+            np.log(np.log(1. / (1. - dp / max_frac))),
             label='Data'
         )
-        scale = np.linspace(0, np.max(self.time_points), 5)
+        scale = np.linspace(np.maximum(np.min(self.time_points) - 1, 1), np.max(self.time_points) + 1, 5)
         ax.plot(
             np.log(scale),
             [m * tlog + m * np.log(beta) for tlog in np.log(scale)],
             label='Estimation'
         )
-        ax.set_title('Log space')
         ax.legend(loc='lower right')
 
     def plot(self, figsize=(8, 7), save_fig=True, save_prefix=''):
@@ -176,20 +210,23 @@ class RegionModel:
             save_fig=True,
             save_prefix=''
     ):
-        if num_cpus <= 0:
+        if num_cpus <= 1:
             for num, (t, d) in enumerate(zip(self.time_points, self.data_points)):
                 self.models.append(self.iteration(
                     t, d, names[num] if names is not None else '',
-                    min_f, max_f, delta_f, verbosity-1, figsize, save_fig, save_prefix))
+                    min_f, max_f, delta_f, verbosity-1, figsize,
+                    save_fig, '%s_%s' % (save_prefix, names[num] if names is not None else num))
+                )
         else:
             num_cpus = np.minimum(multiprocessing.cpu_count() - 1, num_cpus)
             with multiprocessing.Pool(processes=num_cpus) as parallel:
                 models = []
                 for num, (t, d) in enumerate(zip(self.time_points, self.data_points)):
                     models.append(
-                        parallel.apply_async(self.iteration, args=(t, d, names[num] if names is not None else '',
-                                                              min_f, max_f, delta_f, verbosity-1, figsize,
-                                                              save_fig, save_prefix,))
+                        parallel.apply_async(self.iteration,
+                                             args=(t, d, names[num] if names is not None else '',
+                                                   min_f, max_f, delta_f, verbosity-1, figsize, save_fig,
+                                                   '%s_%s' % (save_prefix, names[num] if names is not None else num),))
                     )
                 parallel.close()
                 parallel.join()
