@@ -395,11 +395,11 @@ class ParameterMap(ABC):
     def error(time_sample, real_data, est_mean, est_std):
         time_sample = np.asarray(time_sample)
         s = np.abs(np.asarray(est_mean)[time_sample] - np.asarray(real_data))
-        s[s <= est_std[time_sample]] *= est_std[time_sample][s <= est_std[time_sample]] / .5
-
-        mean_abs_error = np.sum(s) / float(len(s))
-        mean_val = np.sum(np.asarray(real_data)) / float(len(real_data))
-        return 100. * mean_abs_error / mean_val
+        # Discount for prediction within std
+        s[s <= est_std[time_sample]] *= s[s <= est_std[time_sample]] / est_std[s <= est_std[time_sample]]
+        # Penalty for large std
+        s += est_std * s
+        return 100. * np.sum(s / real_data)
 
     def learn(self):
         pass
@@ -499,8 +499,8 @@ class BayesianParameterMap(ParameterMap):
         )
 
     @staticmethod
-    def _subjac_precision(size, noise):
-        return - np.eye(size) * noise**(-2)
+    def _subjac_precision(size, precision):
+        return - np.eye(size) * precision**(-2)
 
     def _optimise_eqk_param(self, step_size, thresh, scaling_init, noise_scaling_init, min_param, verbosity):
         theta_old = np.ones(4) * 999
