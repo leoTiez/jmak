@@ -29,15 +29,28 @@ def load_chrom_split(data_type='train', path='chrom.data'):
     return cs_df_type['chr'].to_list()
 
 
-def load_centromeres(centromeres_path='data/ref/centromeres.bed'):
-    centromeres_path = transform_path(centromeres_path)
-    centromeres = pd.read_csv(
-        centromeres_path,
-        sep='\t',
-        names=['chr', 'start', 'end', 'name', 'score', 'strand']
-    )
-    c = pd.DataFrame(centromeres['chr'])
-    c['pos'] = (centromeres['start'] + centromeres['end']) / 2.
+def load_meres(identifier='centromeres', path=None):
+    if identifier == 'centromeres':
+        path = path if path is not None else 'data/ref/centromeres.bed'
+        centromeres_path = transform_path(path)
+        meres = pd.read_csv(
+            centromeres_path,
+            sep='\t',
+            names=['chr', 'start', 'end', 'name', 'score', 'strand']
+        )
+    elif identifier == 'telomeres':
+        path = path if path is not None else 'data/ref/centromeres.bed'
+        telomeres_path = transform_path(path)
+        meres = pd.read_csv(
+            telomeres_path,
+            sep='\t',
+            names=['chr', 'start', 'end', 'name', 'score', 'strand']
+        )
+    else:
+        raise ValueError('Meres identifier not understood.')
+
+    c = pd.DataFrame(meres['chr'])
+    c['pos'] = (meres['start'] + meres['end']) / 2.
     return c
 
 
@@ -154,7 +167,7 @@ def normalise_data(trans, chrom, data, ref_genome, num_bins=3):
             igr_end = borders[::2]
             igr_start = np.insert(igr_start, 0, 0)
             igr_end = np.append(igr_end, intergenic_mask.size - 1)
-        igr_start, igr_end = igr_start + 1, igr_end + 1
+        # igr_start, igr_end = igr_start + 1, igr_end + 1
         return igr_start, igr_end
     trans_norm_20, trans_norm_60, trans_norm_120 = [], [], []
     non_trans_norm_20, non_trans_norm_60, non_trans_norm_120 = [], [], []
@@ -242,8 +255,8 @@ def load_chrom_data(
             trans.extend([t_20, t_60, t_120])
             non_trans.extend([nt_20, nt_60, nt_120])
             igr.extend([igr_20, igr_60, igr_120])
-            start_igr_list.extend([(chrom, s) for s in start_igr])
-            end_igr_list.extend([(chrom, e) for e in end_igr])
+            start_igr_list.extend([(chrom, int(s)) for s in start_igr])
+            end_igr_list.extend([(chrom, int(e)) for e in end_igr])
             data_transcriptome = data_transcriptome.append(transcriptome_chrom)
 
         trans_20 = [i for k in trans[::3] for i in k]
@@ -326,11 +339,14 @@ def load_bio_data(
     def get_data(chrom_starti_tuple_list, chrom_endi_tuple_list):
         num_data_lists = len(bw_paths) if not use_directionality else len(bw_paths) // 2
         data_list = [[] for _ in range(num_data_lists)]
+        old_chrom = ''
         for (chrom_s, start), (chrom_e, end) in zip(chrom_starti_tuple_list, chrom_endi_tuple_list):
+            start, end = int(start), int(end)
             if chrom_s != chrom_e:
                 raise ValueError('Chromosomes of start and end index do not match')
-
-            all_chrom_data = [np.nan_to_num(d.values(chrom_s, 0, d.chroms(chrom_s))) for d in bw_objs]
+            if old_chrom != chrom_s:
+                all_chrom_data = [np.nan_to_num(d.values(chrom_s, 0, d.chroms(chrom_s))) for d in bw_objs]
+                old_chrom = chrom_s
             read = '+'
             if start > end:
                 end_temp = start
