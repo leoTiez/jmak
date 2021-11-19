@@ -9,6 +9,7 @@ import multiprocessing
 import warnings
 
 from src.Utils import validate_dir
+from src.DataLoader import transform_path
 from src.Kernel import *
 
 
@@ -73,6 +74,7 @@ class JMAK:
             min_f,
             max_f=1.,
             delta_f=.01,
+            fval_accuracy=1e-3,
             verbosity=0,
             figsize=(8, 7),
             save_fig=True,
@@ -116,7 +118,8 @@ class JMAK:
             return
 
         mask = ~np.isnan(fval)
-        idx = np.argmax(fval[mask])
+        # Take the lowest within the tolerance value
+        idx = np.where(np.abs(np.nanmax(fval) - fval[mask]) < fval_accuracy)[0][0]
         self.beta = np.asarray(beta_est)[mask][idx]
         self.m = np.asarray(m_est)[mask][idx]
         self.max_frac = np.arange(min_f, max_f + delta_f, delta_f)[mask][idx]
@@ -245,7 +248,8 @@ class RegionModel:
             raise ValueError('Invalid identifier')
 
     def load_models(self, file_path=''):
-        df = pd.read_csv(file_path)
+        file_path = transform_path(file_path)
+        df = pd.read_csv(file_path, sep='\t')
         for entry, t, d in zip(df.iterrows(), self.time_points, self.data_points):
             entry = entry[1]
             model = JMAK(t, d, m=entry['m'], max_frac=entry['max_frac'], beta=entry['beta'], name=entry['name'])
@@ -338,18 +342,33 @@ class RegionModel:
             cmap='seismic',
             alpha=.7,
             num_handles=6,
-            norm=cls.PowerNorm(1),
+            power_norm=1,
+            m_range=None,
             save_fig=True,
             save_prefix=False
     ):
-        plt.figure(figsize=figsize)
+        m = np.asarray(list(self.get_model_parameter('m')))
+        mf = np.asarray(list(self.get_model_parameter('max_frac')))
+        beta = (np.asarray(list(self.get_model_parameter('beta'))) * size_scaling) ** size_power
+        if m_range is not None:
+            mask = np.ones(m.size).astype('bool')
+            mask[np.logical_or(m < m_range[0], m > m_range[1])] = False
+            m = m[mask]
+            mf = mf[mask]
+            beta = beta[mask]
+            cgradient = cgradient[mask]
+
+        if m.size == 0 or mf.size == 0 or beta.size == 0:
+            return
+
+        fig = plt.figure(figsize=figsize)
         scatter = plt.scatter(
-            list(self.get_model_parameter('m')),
-            list(self.get_model_parameter('max_frac')),
+            m,
+            mf,
             c=cgradient,
-            s=(np.asarray(list(self.get_model_parameter('beta'))) * size_scaling)**size_power,
+            s=beta,
             cmap=cmap,
-            norm=norm,
+            norm=cls.PowerNorm(power_norm),
             alpha=alpha
         )
         plt.xlabel('m')
@@ -361,11 +380,20 @@ class RegionModel:
             num=num_handles,
             func=lambda x: np.power(x, 1./size_power) / size_scaling
         )
-        plt.legend(handles, labels, handletextpad=2, frameon=False)
-
+        plt.legend(
+            handles,
+            labels,
+            title=r'$\beta$',
+            handletextpad=2,
+            labelspacing=1.5,
+            frameon=False,
+            loc='center left',
+            bbox_to_anchor=(1.2, 0.5)
+        )
+        fig.tight_layout(rect=[0, 0, 0.98, 1])
         if save_fig:
             directory = validate_dir('figures/data_models')
-            plt.savefig('%s/%s_%s_model_parameter.png' % (directory, save_prefix, self.name))
+            plt.savefig('%s/%s_%s_model_parameter_gradient.png' % (directory, save_prefix, self.name))
             plt.close('all')
         else:
             plt.show()
