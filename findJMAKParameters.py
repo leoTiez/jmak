@@ -255,7 +255,7 @@ def main(args):
             num_cpus=num_cpus,
             verbosity=verbosity,
             save_fig=save_fig,
-            save_name='test_centre'
+            save_name='test_trans_centre'
         )
         create_model(
             test_trans[:, :, 2],
