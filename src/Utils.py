@@ -13,3 +13,32 @@ def validate_dir(rel_path=''):
     curr_dir = os.getcwd()
     Path('%s/%s/' % (curr_dir, rel_path)).mkdir(parents=True, exist_ok=True)
     return '%s/%s/' % (curr_dir, rel_path)
+
+
+def argparse_jmak_param(arguments):
+    parser = argparse.ArgumentParser(
+        description='Find the best JMAK parameters for CPD data and save them to file.'
+    )
+    parser.add_argument('--do_each', action='store_true', dest='do_each',
+                        help='If set, there is one model per region in each transcript. '
+                             'Otherwise beginning, centre of a gene and end are combined in one single model.')
+    parser.add_argument('--min_f_trans', type=float, default=.5,
+                        help='Minimum allowed value for maximum fraction in transcribed regions '
+                             'during parameter search.')
+    parser.add_argument('--min_f_igr', type=float, default=.4,
+                        help='Minimum allowed value for maximum fraction in intergenic regions '
+                             'during parameter search.')
+    parser.add_argument('--max_f', type=float, default=1.,
+                        help='Maximum allowed value for maximum fraction during parameter search.')
+    parser.add_argument('--delta_f', type=float, default=.01,
+                        help='Step size when increasing maximum fraction during parameter search.')
+    parser.add_argument('--num_cpus', type=int, default=1,
+                        help='Number of processes used for speeding up computations.')
+    parser.add_argument('--verbosity', type=int, default=2,
+                        help='Verbosity flag')
+    parser.add_argument('--save_fig', action='store_true', dest='save_fig',
+                        help='If set, figures are saved instead of displayed.')
+
+    parsed_args = parser.parse_args(arguments)
+    return parsed_args
+
