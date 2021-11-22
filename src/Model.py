@@ -412,7 +412,7 @@ class RegionModel:
             fig.tight_layout()
         if save_fig:
             directory = validate_dir('figures/data_models')
-            plt.savefig('%s/%s_%s_model_parameter_gradient.png' % (directory, save_prefix, self.name))
+            fig.savefig('%s/%s_%s_model_parameter_gradient.png' % (directory, save_prefix, self.name))
             plt.close('all')
         else:
             plt.show()
