@@ -44,3 +44,29 @@ def argparse_jmak_param(arguments):
     parsed_args = parser.parse_args(arguments)
     return parsed_args
 
+
+def argparse_bioplotter(arguments):
+    parser = argparse.ArgumentParser(
+        description='Plot available biological data wrt the parameter space. Train the JMAK model and save'
+                    'them to a file first.'
+    )
+
+    parser.add_argument('--bio_type', type=str, required=True,
+                        help='Pass the data type that is used in order to determine the colour gradient.'
+                             'Possible is: slam | nucl | size | meres'
+                        )
+    parser.add_argument('--do_each', action='store_true', dest='do_each',
+                        help='If set, there is one model per region in each transcript. '
+                             'Otherwise beginning, centre of a gene and end are combined in one single model.')
+    parser.add_argument('--save_fig', action='store_true', dest='save_fig',
+                        help='If set, figures are saved instead of displayed.')
+    parser.add_argument('--size_scaling', type=float, default=100.,
+                        help='Beta parameter is mulitplied by this value to determine the size.')
+    parser.add_argument('--size_power', type=float, default=3.,
+                        help='Scaled beta parameter is taken to the power of size_power to make small changes visible.')
+    parser.add_argument('--power_norm', type=float, default=1.,
+                        help='The colour gradient c is transformed c^power_norm.')
+
+    parsed_args = parser.parse_args(arguments)
+    return parsed_args
+
