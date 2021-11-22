@@ -260,11 +260,13 @@ class RegionModel:
         else:
             raise ValueError('Invalid identifier')
 
-    def load_models(self, file_path=''):
+    def load_models(self, file_path='', compare_chrom_list=None):
         file_path = transform_path(file_path)
         df = pd.read_csv(file_path, sep='\t')
-        for entry, t, d in zip(df.iterrows(), self.time_points, self.data_points):
+        for entry, t, d, chrom in zip(df.iterrows(), self.time_points, self.data_points, compare_chrom_list):
             entry = entry[1]
+            # if chrom not in entry['name']:
+            #     raise ValueError('Model values and data do not match')
             model = JMAK(t, d, m=entry['m'], max_frac=entry['max_frac'], beta=entry['beta'], name=entry['name'])
             self.models.append(model)
 
@@ -355,6 +357,7 @@ class RegionModel:
             alpha=.7,
             num_handles=6,
             power_norm=1,
+            add_beta_legend=False,
             m_range=None,
             save_fig=True,
             save_prefix=False
@@ -387,22 +390,26 @@ class RegionModel:
         plt.ylabel('Maximum fraction')
         plt.title('Parameter distribution %s' % self.name)
         plt.colorbar(scatter)
-        handles, labels = scatter.legend_elements(
-            'sizes',
-            num=num_handles,
-            func=lambda x: np.power(x, 1./size_power) / size_scaling
-        )
-        plt.legend(
-            handles,
-            labels,
-            title=r'$\beta$',
-            handletextpad=2,
-            labelspacing=1.5,
-            frameon=False,
-            loc='center left',
-            bbox_to_anchor=(1.2, 0.5)
-        )
-        fig.tight_layout(rect=[0, 0, 0.98, 1])
+
+        if add_beta_legend:
+            handles, labels = scatter.legend_elements(
+                'sizes',
+                num=num_handles,
+                func=lambda x: np.power(x, 1./size_power) / size_scaling
+            )
+            plt.legend(
+                handles,
+                labels,
+                title=r'$\beta$',
+                handletextpad=2,
+                labelspacing=1.5,
+                frameon=False,
+                loc='center left',
+                bbox_to_anchor=(1.4, 0.5)
+            )
+            fig.tight_layout(rect=[0, 0, 0.95, 1])
+        else:
+            fig.tight_layout()
         if save_fig:
             directory = validate_dir('figures/data_models')
             plt.savefig('%s/%s_%s_model_parameter_gradient.png' % (directory, save_prefix, self.name))
