@@ -38,6 +38,8 @@ def argparse_jmak_param(arguments):
                         help='Verbosity flag')
     parser.add_argument('--save_fig', action='store_true', dest='save_fig',
                         help='If set, figures are saved instead of displayed.')
+    parser.add_argument('--test', action='store_true', dest='test',
+                        help='Run test function for debugging.')
 
     parsed_args = parser.parse_args(arguments)
     return parsed_args
