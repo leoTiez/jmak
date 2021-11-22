@@ -53,7 +53,10 @@ def test_main(args):
             param_trans[:, :, 0],
             1,
             name='Test parameter model Start',
-            jmak_name_list=param_transcriptom['ORF'].to_list(),
+            jmak_name_list=list(map(
+                lambda x: '%s %s' % (x[0], x[1]),
+                zip(param_transcriptom['chr'].to_list(), param_transcriptom['ORF'].to_list())
+            )),
             verbosity=args.verbosity,
             save_fig=args.save_fig,
             num_cpus=args.num_cpus,
@@ -61,14 +64,17 @@ def test_main(args):
         )
     else:
         create_model(
-            param_trans,
-            3,
+            param_igr,
+            1,
             name='Test parameter model total',
-            jmak_name_list=param_transcriptom['ORF'].to_list(),
+            jmak_name_list=list(map(
+                lambda x: '%s %s' % (x[0][0], x[1]),
+                zip(param_igr_start, range(len(param_igr_start)))
+            )),
             verbosity=args.verbosity,
             save_fig=args.save_fig,
             num_cpus=args.num_cpus,
-            save_name='test_param_totla'
+            save_name='test_param_total'
         )
 
 
@@ -101,7 +107,10 @@ def main(args):
             min_f=min_f_trans,
             max_f=max_f,
             delta_f=delta_f,
-            jmak_name_list=train_transcriptome['ORF'].to_list(),
+            jmak_name_list=list(map(
+                lambda x: '%s %s' % (x[0], x[1]),
+                zip(train_transcriptome['chr'].to_list(), train_transcriptome['ORF'].to_list())
+            )),
             heatmap_color=heatmap_color_trans,
             num_cpus=num_cpus,
             verbosity=verbosity,
@@ -115,7 +124,10 @@ def main(args):
             min_f=min_f_trans,
             max_f=max_f,
             delta_f=delta_f,
-            jmak_name_list=train_transcriptome['ORF'].to_list(),
+            jmak_name_list=list(map(
+                lambda x: '%s %s' % (x[0], x[1]),
+                zip(train_transcriptome['chr'].to_list(), train_transcriptome['ORF'].to_list())
+            )),
             heatmap_color=heatmap_color_trans,
             num_cpus=num_cpus,
             verbosity=verbosity,
@@ -129,7 +141,10 @@ def main(args):
             min_f=min_f_trans,
             max_f=max_f,
             delta_f=delta_f,
-            jmak_name_list=train_transcriptome['ORF'].to_list(),
+            jmak_name_list=list(map(
+                lambda x: '%s %s' % (x[0], x[1]),
+                zip(train_transcriptome['chr'].to_list(), train_transcriptome['ORF'].to_list())
+            )),
             heatmap_color=heatmap_color_trans,
             num_cpus=num_cpus,
             verbosity=verbosity,
@@ -144,7 +159,10 @@ def main(args):
             min_f=min_f_trans,
             max_f=max_f,
             delta_f=delta_f,
-            jmak_name_list=train_transcriptome['ORF'].to_list(),
+            jmak_name_list=list(map(
+                lambda x: '%s %s' % (x[0], x[1]),
+                zip(train_transcriptome['chr'].to_list(), train_transcriptome['ORF'].to_list())
+            )),
             heatmap_color=heatmap_color_trans,
             num_cpus=num_cpus,
             verbosity=verbosity,
@@ -160,7 +178,10 @@ def main(args):
             min_f=min_f_igr,
             max_f=max_f,
             delta_f=delta_f,
-            jmak_name_list=train_transcriptome['ORF'].to_list(),
+            jmak_name_list=list(map(
+                lambda x: '%s %s' % (x[0], x[1]),
+                zip(train_transcriptome['chr'].to_list(), train_transcriptome['ORF'].to_list())
+            )),
             heatmap_color=heatmap_color_ntrans,
             num_cpus=num_cpus,
             verbosity=verbosity,
@@ -174,7 +195,10 @@ def main(args):
             min_f=min_f_igr,
             max_f=max_f,
             delta_f=delta_f,
-            jmak_name_list=train_transcriptome['ORF'].to_list(),
+            jmak_name_list=list(map(
+                lambda x: '%s %s' % (x[0], x[1]),
+                zip(train_transcriptome['chr'].to_list(), train_transcriptome['ORF'].to_list())
+            )),
             heatmap_color=heatmap_color_ntrans,
             num_cpus=num_cpus,
             verbosity=verbosity,
@@ -188,7 +212,10 @@ def main(args):
             min_f=min_f_igr,
             max_f=max_f,
             delta_f=delta_f,
-            jmak_name_list=train_transcriptome['ORF'].to_list(),
+            jmak_name_list=list(map(
+                lambda x: '%s %s' % (x[0], x[1]),
+                zip(train_transcriptome['chr'].to_list(), train_transcriptome['ORF'].to_list())
+            )),
             heatmap_color=heatmap_color_ntrans,
             num_cpus=num_cpus,
             verbosity=verbosity,
@@ -203,7 +230,10 @@ def main(args):
             min_f=min_f_igr,
             max_f=max_f,
             delta_f=delta_f,
-            jmak_name_list=train_transcriptome['ORF'].to_list(),
+            jmak_name_list=list(map(
+                lambda x: '%s %s' % (x[0], x[1]),
+                zip(train_transcriptome['chr'].to_list(), train_transcriptome['ORF'].to_list())
+            )),
             heatmap_color=heatmap_color_ntrans,
             num_cpus=num_cpus,
             verbosity=verbosity,
@@ -218,7 +248,10 @@ def main(args):
         min_f=min_f_igr,
         max_f=max_f,
         delta_f=delta_f,
-        jmak_name_list=None,
+        jmak_name_list=list(map(
+                lambda x: '%s %s' % (x[0][0], x[1]),
+                zip(train_igr_start, range(len(train_igr_start)))
+            )),
         heatmap_color=heatmap_color_igr,
         num_cpus=num_cpus,
         verbosity=verbosity,
@@ -236,7 +269,10 @@ def main(args):
             min_f=min_f_trans,
             max_f=max_f,
             delta_f=delta_f,
-            jmak_name_list=test_transcriptome['ORF'].to_list(),
+            jmak_name_list=list(map(
+                lambda x: '%s %s' % (x[0], x[1]),
+                zip(test_transcriptome['chr'].to_list(), test_transcriptome['ORF'].to_list())
+            )),
             heatmap_color=heatmap_color_trans,
             num_cpus=num_cpus,
             verbosity=verbosity,
@@ -250,7 +286,10 @@ def main(args):
             min_f=min_f_trans,
             max_f=max_f,
             delta_f=delta_f,
-            jmak_name_list=test_transcriptome['ORF'].to_list(),
+            jmak_name_list=list(map(
+                lambda x: '%s %s' % (x[0], x[1]),
+                zip(test_transcriptome['chr'].to_list(), test_transcriptome['ORF'].to_list())
+            )),
             heatmap_color=heatmap_color_trans,
             num_cpus=num_cpus,
             verbosity=verbosity,
@@ -264,7 +303,10 @@ def main(args):
             min_f=min_f_trans,
             max_f=max_f,
             delta_f=delta_f,
-            jmak_name_list=test_transcriptome['ORF'].to_list(),
+            jmak_name_list=list(map(
+                lambda x: '%s %s' % (x[0], x[1]),
+                zip(test_transcriptome['chr'].to_list(), test_transcriptome['ORF'].to_list())
+            )),
             heatmap_color=heatmap_color_trans,
             num_cpus=num_cpus,
             verbosity=verbosity,
@@ -279,7 +321,10 @@ def main(args):
             min_f=min_f_trans,
             max_f=max_f,
             delta_f=delta_f,
-            jmak_name_list=test_transcriptome['ORF'].to_list(),
+            jmak_name_list=list(map(
+                lambda x: '%s %s' % (x[0], x[1]),
+                zip(test_transcriptome['chr'].to_list(), test_transcriptome['ORF'].to_list())
+            )),
             heatmap_color=heatmap_color_trans,
             num_cpus=num_cpus,
             verbosity=verbosity,
@@ -295,7 +340,10 @@ def main(args):
             min_f=min_f_igr,
             max_f=max_f,
             delta_f=delta_f,
-            jmak_name_list=test_transcriptome['ORF'].to_list(),
+            jmak_name_list=list(map(
+                lambda x: '%s %s' % (x[0], x[1]),
+                zip(test_transcriptome['chr'].to_list(), test_transcriptome['ORF'].to_list())
+            )),
             heatmap_color=heatmap_color_ntrans,
             num_cpus=num_cpus,
             verbosity=verbosity,
@@ -309,7 +357,10 @@ def main(args):
             min_f=min_f_igr,
             max_f=max_f,
             delta_f=delta_f,
-            jmak_name_list=test_transcriptome['ORF'].to_list(),
+            jmak_name_list=list(map(
+                lambda x: '%s %s' % (x[0], x[1]),
+                zip(test_transcriptome['chr'].to_list(), test_transcriptome['ORF'].to_list())
+            )),
             heatmap_color=heatmap_color_ntrans,
             num_cpus=num_cpus,
             verbosity=verbosity,
@@ -323,7 +374,10 @@ def main(args):
             min_f=min_f_igr,
             max_f=max_f,
             delta_f=delta_f,
-            jmak_name_list=test_transcriptome['ORF'].to_list(),
+            jmak_name_list=list(map(
+                lambda x: '%s %s' % (x[0], x[1]),
+                zip(test_transcriptome['chr'].to_list(), test_transcriptome['ORF'].to_list())
+            )),
             heatmap_color=heatmap_color_ntrans,
             num_cpus=num_cpus,
             verbosity=verbosity,
@@ -338,7 +392,10 @@ def main(args):
             min_f=min_f_igr,
             max_f=max_f,
             delta_f=delta_f,
-            jmak_name_list=test_transcriptome['ORF'].to_list(),
+            jmak_name_list=list(map(
+                lambda x: '%s %s' % (x[0], x[1]),
+                zip(test_transcriptome['chr'].to_list(), test_transcriptome['ORF'].to_list())
+            )),
             heatmap_color=heatmap_color_ntrans,
             num_cpus=num_cpus,
             verbosity=verbosity,
@@ -353,7 +410,10 @@ def main(args):
         min_f=min_f_igr,
         max_f=max_f,
         delta_f=delta_f,
-        jmak_name_list=None,
+        jmak_name_list=list(map(
+                lambda x: '%s %s' % (x[0][0], x[1]),
+                zip(test_igr_start, range(len(test_igr_start)))
+            )),
         heatmap_color=heatmap_color_igr,
         num_cpus=num_cpus,
         verbosity=verbosity,
@@ -364,6 +424,8 @@ def main(args):
 
 if __name__ == '__main__':
     args = argparse_jmak_param(sys.argv[1:])
-    # test_main(args)
-    main(args)
+    if args.test:
+        test_main(args)
+    else:
+        main(args)
 
