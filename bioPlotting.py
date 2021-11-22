@@ -169,9 +169,9 @@ def main(args):
                         cmap='PiYG',
                         alpha=.7,
                         m_range=mr,
-                        size_scaling=100,
-                        size_power=3.,
-                        power_norm=.1,
+                        size_scaling=size_scaling,
+                        size_power=size_power,
+                        power_norm=power_norm,
                         num_handles=8,
                         save_fig=save_fig,
                         save_prefix='slam_%s_%s_%s' % (n, mr[0], mr[1])
@@ -206,9 +206,9 @@ def main(args):
                         cmap='BrBG',
                         alpha=.7,
                         m_range=mr,
-                        size_scaling=100,
-                        size_power=3.,
-                        power_norm=1.,
+                        size_scaling=size_scaling,
+                        size_power=size_power,
+                        power_norm=power_norm,
                         save_fig=save_fig,
                         save_prefix='nucl_%s_%s_%s' % (n, mr[0], mr[1])
                     )
@@ -222,9 +222,9 @@ def main(args):
                         cmap='BrBG',
                         alpha=.7,
                         m_range=mr,
-                        size_scaling=100,
-                        size_power=3.,
-                        power_norm=1.,
+                        size_scaling=size_scaling,
+                        size_power=size_power,
+                        power_norm=power_norm,
                         save_fig=save_fig,
                         save_prefix='nucl_%s_%s_%s' % (n, mr[0], mr[1])
                     )
@@ -242,9 +242,9 @@ def main(args):
                     cmap='RdGy',
                     alpha=.7,
                     m_range=mr,
-                    size_scaling=100,
-                    size_power=3.,
-                    power_norm=1.,
+                    size_scaling=size_scaling,
+                    size_power=size_power,
+                    power_norm=power_norm,
                     save_fig=save_fig,
                     save_prefix='size_%s_%s' % (mr[0], mr[1])
                 )
@@ -292,9 +292,9 @@ def main(args):
                     cmap='RdGy',
                     alpha=.7,
                     m_range=mr,
-                    size_scaling=100,
-                    size_power=3.,
-                    power_norm=1.,
+                    size_scaling=size_scaling,
+                    size_power=size_power,
+                    power_norm=power_norm,
                     save_fig=save_fig,
                     save_prefix='size_%s_%s' % (mr[0], mr[1])
                 )
@@ -346,9 +346,9 @@ def main(args):
                     cmap='RdGy',
                     alpha=.7,
                     m_range=mr,
-                    size_scaling=100,
-                    size_power=3.,
-                    power_norm=1.,
+                    size_scaling=size_scaling,
+                    size_power=size_power,
+                    power_norm=power_norm,
                     save_fig=save_fig,
                     save_prefix='size_%s_%s' % (mr[0], mr[1])
                 )
