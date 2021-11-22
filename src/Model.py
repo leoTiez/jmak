@@ -235,15 +235,28 @@ class RegionModel:
                 parallel.join()
                 self.models = [ar.get() for ar in models]
 
-    def get_model_parameter(self, identifier='m'):
+    def get_model_parameter(self, identifier='m', do_filter=True):
         if identifier == 'm':
-            return filter(lambda y: y is not None, map(lambda x: x.m, self.models))
+            m_map = map(lambda x: x.m, self.models)
+            if do_filter:
+                return filter(lambda y: y is not None, m_map)
+            else:
+                return m_map
         elif identifier == 'beta':
-            return filter(lambda y: y is not None, map(lambda x: x.beta, self.models))
+            beta_map = map(lambda x: x.beta, self.models)
+            if do_filter:
+                return filter(lambda y: y is not None, beta_map)
+            return beta_map
         elif identifier == 'max_frac':
-            return filter(lambda y: y is not None, map(lambda x: x.max_frac, self.models))
+            max_frac_map = map(lambda x: x.max_frac, self.models)
+            if do_filter:
+                return filter(lambda y: y is not None, max_frac_map)
+            return max_frac_map
         elif identifier == 'name':
-            return filter(lambda y: y is not None, map(lambda x: x.name if x.m is not None else None, self.models))
+            name_map = map(lambda x: x.name if x.m is not None else None, self.models)
+            if do_filter:
+                return filter(lambda y: y is not None, name_map)
+            return name_map
         else:
             raise ValueError('Invalid identifier')
 
@@ -256,10 +269,10 @@ class RegionModel:
             self.models.append(model)
 
     def to_file(self, file_name=''):
-        names = list(self.get_model_parameter('name'))
-        m_list = list(self.get_model_parameter('m'))
-        max_frac_list = self.get_model_parameter('max_frac')
-        beta_list = self.get_model_parameter('beta')
+        names = list(self.get_model_parameter('name', do_filter=False))
+        m_list = list(self.get_model_parameter('m', do_filter=False))
+        max_frac_list = self.get_model_parameter('max_frac', do_filter=False)
+        beta_list = self.get_model_parameter('beta', do_filter=False)
 
         if not names:
             names = [''] * len(m_list)
@@ -270,7 +283,6 @@ class RegionModel:
     def plot_parameter_histogram(
             self,
             color,
-            fcolor='white',
             bins=(30, 30),
             norm_gamma=.3,
             figsize=(4, 10),
@@ -459,12 +471,18 @@ class ParameterMap(ABC):
     @staticmethod
     def error(time_sample, real_data, est_mean, est_std):
         time_sample = np.asarray(time_sample)
+        mask = time_sample > 0
         s = np.abs(np.asarray(est_mean)[time_sample] - np.asarray(real_data))
         # Discount for prediction within std
-        s[s <= est_std[time_sample]] *= s[s <= est_std[time_sample]] / est_std[s <= est_std[time_sample]]
+        s[
+            np.logical_and(s <= est_std[time_sample], mask)
+        ] *= s[np.logical_and(s <= est_std[time_sample], mask)] / est_std[
+            np.logical_and(s <= est_std[time_sample], mask)]
+
         # Penalty for large std
         s += est_std * s
-        return 100. * np.sum(s / real_data)
+
+        return 100 * np.sum(s) / len(s)
 
     def learn(self):
         pass
