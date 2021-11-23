@@ -50,7 +50,7 @@ class JMAK:
         return (1 - np.exp(- np.power(self.beta * time, self.m))) * self.max_frac
 
     def repair_fraction_over_time(self, to_time):
-        return [self.repair_fraction(t) for t in np.arange(to_time)]
+        return np.asarray([self.repair_fraction(t) for t in np.arange(to_time)])
 
     def _estimate_shape_scale(self, max_frac):
         if np.any(max_frac < self.data_points):
@@ -269,8 +269,9 @@ class RegionModel:
         df = pd.read_csv(file_path, sep='\t')
         for entry, t, d, chrom in zip(df.iterrows(), self.time_points, self.data_points, compare_chrom_list):
             entry = entry[1]
-            # if chrom not in entry['name']:
-            #     raise ValueError('Model values and data do not match')
+            if ~np.isnan(entry['m']):
+                if chrom not in entry['name']:
+                    raise ValueError('Model values and data do not match')
             model = JMAK(t, d, m=entry['m'], max_frac=entry['max_frac'], beta=entry['beta'], name=entry['name'])
             self.models.append(model)
 
@@ -514,7 +515,7 @@ class ParameterMap(ABC):
     def error(time_sample, real_data, est_mean, est_std):
         time_sample = np.asarray(time_sample)
         mask = time_sample > 0
-        s = np.abs(np.asarray(est_mean)[time_sample] - np.asarray(real_data))
+        s = np.abs(np.asarray(est_mean) - np.asarray(real_data))
         # Discount for prediction within std
         s[
             np.logical_and(s <= est_std[time_sample], mask)
@@ -524,7 +525,7 @@ class ParameterMap(ABC):
         # Penalty for large std
         s += est_std * s
 
-        return 100 * np.sum(s) / len(s)
+        return 100 * np.mean(s)
 
     def learn(self, num_cpus=1):
         pass
@@ -738,15 +739,18 @@ class BayesianParameterMap(ParameterMap):
                 results = [r.get() for r in results]
                 mean, var = zip(*results)
 
+        self.map_bio = np.asarray(mean)
+        self.learnt_var = np.asarray(var)
         predictions, _, _, _ = self.estimate(new_bio=self.bio_data_val, time_scale=estimate_time)
         val_error = []
         for (m, mf, beta), p in zip(self.data_params_val, predictions):
+            m = m * self.m_std + self.m_mean
+            mf = mf * self.max_frac_std + self.max_frac_mean
+            beta = beta * self.beta_std + self.beta_mean
             best_estimation = JMAK(None, None, m=m, max_frac=mf, beta=beta
                                    ).repair_fraction_over_time(to_time=estimate_time)
-            error = self.error(np.arange(estimate_time), best_estimation, np.mean(p), np.var(p))
+            error = self.error(np.arange(estimate_time), best_estimation, np.mean(p, axis=0), np.var(p, axis=0))
             val_error.append(error)
-        self.map_bio = np.asarray(mean)
-        self.learnt_var = np.asarray(var)
 
     def estimate(self, new_bio, time_scale=140):
         est_m_list, est_max_frac_list, est_beta_list, prediction = [], [], [], []
@@ -770,7 +774,7 @@ class BayesianParameterMap(ParameterMap):
                 beta=est_beta,
                 name='Temp'
             )
-            prediction.append([tp_model.repair_fraction(t) for t in range(time_scale)])
+            prediction.append(tp_model.repair_fraction_over_time(time_scale).T)
 
         return np.asarray(prediction), est_m_list, est_max_frac_list, est_beta_list
 
