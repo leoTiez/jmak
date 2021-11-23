@@ -130,7 +130,7 @@ def main_nucl():
     min_mf = .4
     min_beta = 8e-3
     max_beta = 3.5e-2
-    num_param_values = 100
+    num_param_values = 10
     num_cpus = 4
     nucl_index = NUCLEOSOME_INDEX['nouv']
 
@@ -170,10 +170,9 @@ def main_nucl():
     test_data = []
     for rm in region_model_list:
         temp_m = np.asarray(list(rm.get_model_parameter('m', do_filter=False)))
-        mask = temp_m < 5
-        if not 'intergenic' in rm.name.lower():
-            continue
-        if 'train' in rm.name.lower():
+        mask = ~np.isnan(temp_m)
+        mask = temp_m < 6
+        if 'gene' in rm.name.lower():
             train_nucl, test_nucl = train_nucl_trans[nucl_index], test_nucl_trans[nucl_index]
         else:
             train_nucl, test_nucl = train_nucl_igr[nucl_index], test_nucl_igr[nucl_index]
