@@ -272,7 +272,8 @@ def load_chrom_data(
         igr_20 = [i for k in igr[::3] for i in k]
         igr_60 = [i for k in igr[1::3] for i in k]
         igr_120 = [i for k in igr[2::3] for i in k]
-        igr = np.asarray([igr_20, igr_60, igr_120])
+        # Pair plus and minus into one data point
+        igr = np.asarray([igr_20, igr_60, igr_120]).reshape(3, -1, 2)
 
         data_transcriptome = data_transcriptome.reset_index(drop=True)
         shuffle_idx_trans = np.arange(len(data_transcriptome.index))
@@ -334,7 +335,8 @@ def load_bio_data(
         test_chrom_endi_tuple_list,
         bw_paths,
         shuffle_data=False,
-        use_directionality=False
+        use_directionality=False,
+        use_sum=False
 ):
     def get_data(chrom_starti_tuple_list, chrom_endi_tuple_list):
         num_data_lists = len(bw_paths) if not use_directionality else len(bw_paths) // 2
@@ -361,8 +363,9 @@ def load_bio_data(
             else:
                 chrom_data = all_chrom_data
 
+            fun = np.nanmean if not use_sum else np.nansum
             for num, cd in enumerate(chrom_data):
-                data_list[num].append(np.nanmean(cd[start:end]))
+                data_list[num].append(fun(cd[start:end]))
 
         shuffle_idx = np.arange(len(data_list[0]))
         if shuffle_data:
