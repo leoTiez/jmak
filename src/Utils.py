@@ -55,6 +55,9 @@ def argparse_bioplotter(arguments):
                         help='Pass the data type that is used in order to determine the colour gradient.'
                              'Possible is: slam | nucl | size | meres'
                         )
+    parser.add_argument('--use_sum', action='store_true', dest='use_sum',
+                        help='If set, when the biological data is loaded, the sum is taken instead of the mean.'
+                             'Only important for bio_type=slam or bio_type=nucl')
     parser.add_argument('--do_each', action='store_true', dest='do_each',
                         help='If set, there is one model per region in each transcript. '
                              'Otherwise beginning, centre of a gene and end are combined in one single model.')
@@ -66,6 +69,8 @@ def argparse_bioplotter(arguments):
                         help='Scaled beta parameter is taken to the power of size_power to make small changes visible.')
     parser.add_argument('--power_norm', type=float, default=1.,
                         help='The colour gradient c is transformed c^power_norm.')
+    parser.add_argument('--save_prefix', type=str, default='',
+                        help='Set identifying string that goes in front of every saved file name.')
 
     parsed_args = parser.parse_args(arguments)
     return parsed_args
