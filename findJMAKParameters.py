@@ -65,8 +65,8 @@ def test_main(args):
     else:
         create_model(
             param_igr,
-            1,
-            name='Test parameter model total',
+            2,
+            name='Test parameter model igr',
             jmak_name_list=list(map(
                 lambda x: '%s %s' % (x[0][0], x[1]),
                 zip(param_igr_start, range(len(param_igr_start)))
@@ -243,7 +243,7 @@ def main(args):
     # Intergenic
     create_model(
         train_igr,
-        1,
+        2,
         'Train intergenic regions',
         min_f=min_f_igr,
         max_f=max_f,
@@ -405,7 +405,7 @@ def main(args):
     # Intergenic
     create_model(
         test_igr,
-        1,
+        2,
         'test intergenic regions',
         min_f=min_f_igr,
         max_f=max_f,
