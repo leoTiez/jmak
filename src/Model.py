@@ -7,6 +7,7 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 from abc import ABC
 import multiprocessing
 import warnings
+from sklearn.model_selection import train_test_split
 
 from src.Utils import validate_dir
 from src.DataLoader import transform_path
@@ -47,6 +48,9 @@ class JMAK:
             )
 
         return (1 - np.exp(- np.power(self.beta * time, self.m))) * self.max_frac
+
+    def repair_fraction_over_time(self, to_time):
+        return [self.repair_fraction(t) for t in np.arange(to_time)]
 
     def _estimate_shape_scale(self, max_frac):
         if np.any(max_frac < self.data_points):
@@ -358,29 +362,45 @@ class RegionModel:
             num_handles=6,
             power_norm=1,
             add_beta_legend=False,
+            order_cgradient=True,
+            data_mask=None,
             m_range=None,
             save_fig=True,
             save_prefix=False
     ):
+        def frequency_bins(x, nbin):
+            nlen = len(x)
+            return np.interp(np.linspace(0, nlen, nbin + 1), np.arange(nlen), np.sort(x))
+
         m = np.asarray(list(self.get_model_parameter('m')))
         mf = np.asarray(list(self.get_model_parameter('max_frac')))
         beta = (np.asarray(list(self.get_model_parameter('beta'))) * size_scaling) ** size_power
-        if m_range is not None:
-            mask = np.ones(m.size).astype('bool')
-            mask[np.logical_or(m < m_range[0], m > m_range[1])] = False
-            m = m[mask]
-            mf = mf[mask]
-            beta = beta[mask]
-            cgradient = cgradient[mask]
 
+        if data_mask is None:
+            data_mask = np.ones(m.size, dtype='bool')
+        mask = np.logical_and(~np.isnan(m), np.logical_and(~np.isnan(beta), ~np.isnan(mf)))
+        if m_range is not None:
+            mask[np.logical_or(m < m_range[0], m > m_range[1])] = False
+        mask = np.logical_and(data_mask, mask)
+        m = m[mask]
+        mf = mf[mask]
+        beta = beta[mask]
+        cgradient = cgradient[mask]
         if m.size == 0 or mf.size == 0 or beta.size == 0:
             return
+
+        if order_cgradient:
+            bins = frequency_bins(cgradient, 50)
+            cgrad = np.digitize(cgradient, bins=bins)
+        else:
+            cgrad = cgradient
+            bins = cgradient
 
         fig = plt.figure(figsize=figsize)
         scatter = plt.scatter(
             m,
             mf,
-            c=cgradient,
+            c=cgrad,
             s=beta,
             cmap=cmap,
             norm=cls.PowerNorm(power_norm),
@@ -389,7 +409,9 @@ class RegionModel:
         plt.xlabel('m')
         plt.ylabel('Maximum fraction')
         plt.title('Parameter distribution %s' % self.name)
-        plt.colorbar(scatter)
+        label_idx = np.linspace(np.min(cgrad), np.max(cgrad), 6, dtype='int')
+        cbar = plt.colorbar(scatter, ticks=label_idx)
+        cbar.ax.set_yticklabels(['%.2f' % label for label in bins[label_idx - 1]])
 
         if add_beta_legend:
             handles, labels = scatter.legend_elements(
@@ -411,9 +433,12 @@ class RegionModel:
         else:
             fig.tight_layout()
         if save_fig:
-            directory = validate_dir('figures/data_models')
-            fig.savefig('%s/%s_%s_model_parameter_gradient.png' % (directory, save_prefix, self.name))
-            plt.close('all')
+            try:
+                directory = validate_dir('figures/data_models')
+                fig.savefig('%s/%s_%s_model_parameter_gradient.png' % (directory, save_prefix, self.name))
+                plt.close('all')
+            except:
+                plt.close('all')
         else:
             plt.show()
 
@@ -437,10 +462,13 @@ class ParameterMap(ABC):
             max_mf=1.,
             min_beta=8e-3,
             max_beta=3.5e-2,
+            val_frac=.2,
+            random_state=None,
             num_param_values=100
     ):
+        if len(rmodel.models) != len(bio_data):
+            raise ValueError('The number of region models must be equal to the number of biological data points.')
         self.rmodel = rmodel
-        self.bio_data = bio_data
         self.map_bio = None
         m_shape = np.asarray(list(self.rmodel.get_model_parameter('m')))
         max_frac = np.asarray(list(self.rmodel.get_model_parameter('max_frac')))
@@ -449,7 +477,14 @@ class ParameterMap(ABC):
         m_shape, self.m_mean, self.m_std = ParameterMap.normalise(m_shape)
         max_frac, self.max_frac_mean, self.max_frac_std = ParameterMap.normalise(max_frac)
         beta, self.beta_mean, self.beta_std = ParameterMap.normalise(beta)
-        self.data_params = np.asarray([m_shape, max_frac, beta]).T
+        all_data_params = np.asarray([m_shape, max_frac, beta]).T
+
+        self.data_params, self.data_params_val, self.bio_data, self.bio_data_val = train_test_split(
+            all_data_params,
+            bio_data,
+            test_size=val_frac,
+            random_state=random_state
+        )
 
         self.map_m = np.linspace(min_m, max_m, num_param_values)
         self.map_max_frac = np.linspace(min_mf, max_mf, num_param_values)
@@ -491,7 +526,7 @@ class ParameterMap(ABC):
 
         return 100 * np.sum(s) / len(s)
 
-    def learn(self):
+    def learn(self, num_cpus=1):
         pass
 
     def estimate(self, new_bio, time_scale=140):
@@ -517,10 +552,12 @@ class BayesianParameterMap(ParameterMap):
             min_beta=8e-3,
             max_beta=3.5e-2,
             num_param_values=100,
+            val_frac=.2,
+            random_state=None,
             do_estimate_hp=True
     ):
         if len(rmodel.models) == 1:
-            raise ValueError('The region model must contain at least to JMAK models.')
+            raise ValueError('The region model must contain at least two JMAK models.')
 
         super().__init__(
             rmodel,
@@ -531,7 +568,9 @@ class BayesianParameterMap(ParameterMap):
             max_mf=max_mf,
             min_beta=min_beta,
             max_beta=max_beta,
-            num_param_values=num_param_values
+            num_param_values=num_param_values,
+            val_frac=val_frac,
+            random_state=random_state
         )
         # self.noise = noise
         if kernel_func_type == 'eqk':
@@ -596,7 +635,7 @@ class BayesianParameterMap(ParameterMap):
         theta_old = np.ones(4) * 999
         s = np.ones(4) * scaling_init
         s[-1] = noise_scaling_init
-        theta_new = np.random.randn(4) + s
+        theta_new = np.random.random(4) + s
         while np.linalg.norm(theta_old - theta_new) > thresh:
             theta_old = theta_new.copy()
 
@@ -667,18 +706,45 @@ class BayesianParameterMap(ParameterMap):
     def _set_gramm(self):
         self.C, self.inv_C = self._calc_c(self.data_params, self.kernel.func, self.kernel.params, self.noise)
 
-    def learn(self):
+    @staticmethod
+    def det_parameter_mapping(xn, y_data, kernel, weighted_t, inv_C, noise):
+        k = np.asarray([kernel(x_j, xn) for x_j in y_data])
+        m = k.dot(weighted_t)
+        v = kernel(xn, xn) + noise - k.dot(inv_C).dot(k.T)
+        return m, v
+
+    def learn(self, num_cpus=1, estimate_time=140):
         self._set_gramm()
 
         mean, var = [], []
         weighted_t = self.inv_C.dot(self.bio_data)
-        for xn in self.map_param:
-            k = np.asarray([self.kernel(x_j, xn) for x_j in self.data_params])
-            m = k.dot(weighted_t)
-            v = self.kernel(xn, xn) + self.noise - k.dot(self.inv_C).dot(k.T)
-            mean.append(m)
-            var.append(v)
+        if num_cpus < 2:
+            for xn in self.map_param:
+                m, v = self.det_parameter_mapping(xn, self.data_params, self.kernel,
+                                                  weighted_t, self.inv_C, self.noise)
+                mean.append(m)
+                var.append(v)
+        else:
+            num_cpus = np.minimum(multiprocessing.cpu_count() - 1, num_cpus)
+            with multiprocessing.Pool(processes=num_cpus) as parallel:
+                results = []
+                for xn in self.map_param:
+                    results.append(parallel.apply_async(
+                        self.det_parameter_mapping, (xn, self.data_params, self.kernel,
+                                                     weighted_t, self.inv_C, self.noise,)
+                    ))
+                parallel.close()
+                parallel.join()
+                results = [r.get() for r in results]
+                mean, var = zip(*results)
 
+        predictions, _, _, _ = self.estimate(new_bio=self.bio_data_val, time_scale=estimate_time)
+        val_error = []
+        for (m, mf, beta), p in zip(self.data_params_val, predictions):
+            best_estimation = JMAK(None, None, m=m, max_frac=mf, beta=beta
+                                   ).repair_fraction_over_time(to_time=estimate_time)
+            error = self.error(np.arange(estimate_time), best_estimation, np.mean(p), np.var(p))
+            val_error.append(error)
         self.map_bio = np.asarray(mean)
         self.learnt_var = np.asarray(var)
 
