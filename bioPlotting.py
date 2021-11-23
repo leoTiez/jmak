@@ -120,6 +120,8 @@ def main(args):
     size_power = args.size_power
     power_norm = args.power_norm
     bio_type = args.bio_type
+    save_prefix = args.save_prefix
+    use_sum = args.use_sum
 
     slam_paths = [
         'data/seq/nouv_slam_mins_new.bw',
@@ -157,7 +159,8 @@ def main(args):
             zip(test_transcriptome['chr'].to_list(), test_transcriptome['start'].to_list()),
             zip(test_transcriptome['chr'].to_list(), test_transcriptome['end'].to_list()),
             slam_paths,
-            use_directionality=True
+            use_directionality=True,
+            use_sum=use_sum
         )
 
         for tm in trans_rmodels:
@@ -174,7 +177,7 @@ def main(args):
                         power_norm=power_norm,
                         num_handles=8,
                         save_fig=save_fig,
-                        save_prefix='slam_%s_%s_%s' % (n, mr[0], mr[1])
+                        save_prefix='%s_slam_%s_%s_%s' % (save_prefix, n, mr[0], mr[1])
                     )
 
     elif bio_type.lower() == 'nucl':
@@ -186,7 +189,8 @@ def main(args):
             zip(test_transcriptome['chr'].to_list(), test_transcriptome['start'].to_list()),
             zip(test_transcriptome['chr'].to_list(), test_transcriptome['end'].to_list()),
             nucl_paths,
-            use_directionality=False
+            use_directionality=False,
+            use_sum=use_sum
         )
         train_nucl_igr, test_nucl_igr = load_bio_data(
             train_start_igr,
@@ -194,12 +198,13 @@ def main(args):
             test_start_igr,
             test_end_igr,
             nucl_paths,
-            use_directionality=False
+            use_directionality=False,
+            use_sum=use_sum
         )
 
         for tm in trans_rmodels:
             nucl_data = train_nucl_trans if 'train' in tm.name.lower() else test_nucl_trans
-            for sd, n in zip(nucl_data, ['nouv', '20m', '120m']):
+            for sd, n in zip(nucl_data, ['nouv', '0m', '30m']):
                 for mr in [(0, 5), (5, 10), (10, 15), (15, 20), (20, 25)]:
                     tm.plot_parameter_with_gradient(
                         sd,
@@ -210,7 +215,7 @@ def main(args):
                         size_power=size_power,
                         power_norm=power_norm,
                         save_fig=save_fig,
-                        save_prefix='nucl_%s_%s_%s' % (n, mr[0], mr[1])
+                        save_prefix='%s_nucl_%s_%s_%s' % (save_prefix, n, mr[0], mr[1])
                     )
 
         for tm in igr_rmodels:
@@ -226,7 +231,7 @@ def main(args):
                         size_power=size_power,
                         power_norm=power_norm,
                         save_fig=save_fig,
-                        save_prefix='nucl_%s_%s_%s' % (n, mr[0], mr[1])
+                        save_prefix='%s_nucl_%s_%s_%s' % (save_prefix, n, mr[0], mr[1])
                     )
 
     elif bio_type.lower() == 'size':
@@ -239,14 +244,14 @@ def main(args):
             for mr in [(0, 5), (5, 10), (10, 15), (15, 20), (20, 25)]:
                 tm.plot_parameter_with_gradient(
                     size_data,
-                    cmap='RdGy',
+                    cmap='Spectral',
                     alpha=.7,
                     m_range=mr,
                     size_scaling=size_scaling,
                     size_power=size_power,
                     power_norm=power_norm,
                     save_fig=save_fig,
-                    save_prefix='size_%s_%s' % (mr[0], mr[1])
+                    save_prefix='%s_size_%s_%s' % (save_prefix, mr[0], mr[1])
                 )
 
     elif bio_type.lower() == 'meres':
@@ -296,7 +301,7 @@ def main(args):
                     size_power=size_power,
                     power_norm=power_norm,
                     save_fig=save_fig,
-                    save_prefix='size_%s_%s' % (mr[0], mr[1])
+                    save_prefix='%s_meres_%s_%s' % (save_prefix, mr[0], mr[1])
                 )
 
         train_igr_diff_cen_tel = []
@@ -350,7 +355,7 @@ def main(args):
                     size_power=size_power,
                     power_norm=power_norm,
                     save_fig=save_fig,
-                    save_prefix='size_%s_%s' % (mr[0], mr[1])
+                    save_prefix='%s_meres_%s_%s' % (save_prefix, mr[0], mr[1])
                 )
 
 
