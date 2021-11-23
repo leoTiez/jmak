@@ -50,9 +50,9 @@ def test_main(args):
     (param_trans, param_ntrans, param_igr, param_igr_start, param_igr_end, param_transcriptom) = param_data
     if args.do_each:
         create_model(
-            param_trans[:, :, 0],
+            param_ntrans[:, :, 0],
             1,
-            name='Test parameter model Start',
+            name='Test nts model Start',
             jmak_name_list=list(map(
                 lambda x: '%s %s' % (x[0], x[1]),
                 zip(param_transcriptom['chr'].to_list(), param_transcriptom['ORF'].to_list())
