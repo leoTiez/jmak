@@ -92,16 +92,21 @@ def create_models(train_data, test_data, do_each=True):
     model_list = []
     for data, name, file_name in iter:
         if 'train' in name.lower():
-            if 'genes' in name.lower():
+            if 'trans' in file_name.lower():
                 chrom_list = train_transcriptome['chr'].to_list()
             else:
                 chrom_list = map(lambda x: x[0], train_start_igr)
         else:
-            if 'genes' in name.lower():
+            if 'trans' in file_name.lower():
                 chrom_list = test_transcriptome['chr'].to_list()
             else:
                 chrom_list = map(lambda x: x[0], test_start_igr)
-        num_pos = 3 if not do_each and 'trans' in file_name else 1
+        if not do_each and 'trans' in file_name:
+            num_pos = 3
+        elif 'igr' in file_name:
+            num_pos = 2
+        else:
+            num_pos = 1
         region_model = RegionModel(
             create_time_data(num_pos, len(data)),
             data.reshape(len(data), -1),
@@ -149,6 +154,7 @@ def main(args):
 
     trans_rmodels = list(filter(lambda x: 'gene' in x.name.lower(), region_model_list))
     igr_rmodels = list(filter(lambda x: 'intergenic' in x.name.lower(), region_model_list))
+    nts_rmodels = list(filter(lambda x: 'nts' in x.name.lower(), region_model_list))
 
     if bio_type.lower() == 'slam':
         # SLAM-seq data
