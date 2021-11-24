@@ -6,10 +6,10 @@ import matplotlib.colors as cls
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from abc import ABC
 import multiprocessing
-import warnings
 from sklearn.model_selection import train_test_split
+from sklearn.decomposition import PCA
 
-from src.Utils import validate_dir
+from src.Utils import validate_dir, frequency_bins
 from src.DataLoader import transform_path
 from src.Kernel import *
 
@@ -239,6 +239,12 @@ class RegionModel:
                 parallel.join()
                 self.models = [ar.get() for ar in models]
 
+    def get_total_repair_fraction(self, time_scale):
+        all_rf = []
+        for model in self.models:
+            all_rf.append(model.repair_fraction_over_time(to_time=time_scale))
+        return np.asarray(all_rf)
+
     def get_model_parameter(self, identifier='m', do_filter=True):
         if identifier == 'm':
             m_map = map(lambda x: x.m, self.models)
@@ -369,10 +375,6 @@ class RegionModel:
             save_fig=True,
             save_prefix=False
     ):
-        def frequency_bins(x, nbin):
-            nlen = len(x)
-            return np.interp(np.linspace(0, nlen, nbin + 1), np.arange(nlen), np.sort(x))
-
         m = np.asarray(list(self.get_model_parameter('m')))
         mf = np.asarray(list(self.get_model_parameter('max_frac')))
         beta = (np.asarray(list(self.get_model_parameter('beta'))) * size_scaling) ** size_power
@@ -435,7 +437,7 @@ class RegionModel:
             fig.tight_layout()
         if save_fig:
             try:
-                directory = validate_dir('figures/data_models')
+                directory = validate_dir('figures/grad_colour')
                 fig.savefig('%s/%s_%s_model_parameter_gradient.png' % (directory, save_prefix, self.name))
                 plt.close('all')
             except:
@@ -512,18 +514,18 @@ class ParameterMap(ABC):
         return data, mean, std
 
     @staticmethod
-    def error(time_sample, real_data, est_mean, est_std):
+    def error(time_sample, real_data, est_mean, est_var):
         time_sample = np.asarray(time_sample)
         mask = time_sample > 0
         s = np.abs(np.asarray(est_mean) - np.asarray(real_data))
         # Discount for prediction within std
         s[
-            np.logical_and(s <= est_std[time_sample], mask)
-        ] *= s[np.logical_and(s <= est_std[time_sample], mask)] / est_std[
-            np.logical_and(s <= est_std[time_sample], mask)]
+            np.logical_and(s <= est_var[time_sample], mask)
+        ] *= s[np.logical_and(s <= est_var[time_sample], mask)] / est_var[
+            np.logical_and(s <= est_var[time_sample], mask)]
 
         # Penalty for large std
-        s += est_std * s
+        s += est_var * s
 
         return 100 * np.mean(s)
 
@@ -714,7 +716,16 @@ class BayesianParameterMap(ParameterMap):
         v = kernel(xn, xn) + noise - k.dot(inv_C).dot(k.T)
         return m, v
 
-    def learn(self, num_cpus=1, estimate_time=140):
+    def learn(
+            self,
+            num_cpus=1,
+            estimate_time=140,
+            verbosity=0,
+            figsize=(8, 7),
+            hist_bins=100,
+            save_fig=True,
+            save_prefix=''
+    ):
         self._set_gramm()
 
         mean, var = [], []
@@ -751,6 +762,67 @@ class BayesianParameterMap(ParameterMap):
                                    ).repair_fraction_over_time(to_time=estimate_time)
             error = self.error(np.arange(estimate_time), best_estimation, np.mean(p, axis=0), np.var(p, axis=0))
             val_error.append(error)
+        if verbosity > 0:
+            print('Model: %s\tAverage validation error: %.2f' % (self.rmodel.name, np.mean(val_error)))
+            if verbosity > 1:
+                plt.figure(figsize=(8, 7))
+                plt.hist(val_error, bins=hist_bins)
+                plt.title('Validation error histogram: %s' % self.rmodel.name)
+                if save_fig:
+                    directory = validate_dir('figures/predict_models')
+                    plt.savefig('%s/%s_%s_val_err.png' % (directory, save_prefix, self.rmodel.name))
+                    plt.close('all')
+                else:
+                    plt.show()
+
+        return val_error
+
+    def plot_parameter_map(
+            self,
+            plotted_dp=100,
+            levels=15,
+            figsize=(8, 7),
+            verbosity=0,
+            save_fig=True,
+            save_prefix=''
+    ):
+        pca = PCA(n_components=2)
+        map_param_pca = pca.fit(self.map_param).transform(self.map_param).T
+        if verbosity > 0:
+            print(
+                'Explained parameter ratio:\tPC1 %.2f\tPC2: %.2f' %
+                (pca.explained_variance_ratio_[0],
+                 pca.explained_variance_ratio_[1])
+            )
+        params_val_pca = pca.transform(self.data_params_val).T
+
+        plt.figure(figsize=figsize)
+        map_contour = plt.tricontourf(*map_param_pca, self.map_bio, levels, cmap='seismic', alpha=.7)
+        plt.tricontour(*map_param_pca, self.map_bio, levels, linewidths=0.5, colors='k')
+
+        size = np.minimum(plotted_dp, len(self.bio_data_val))
+        idx = np.random.choice(len(self.bio_data_val), size=size, replace=False)
+        plt.scatter(
+            *params_val_pca,
+            c=self.bio_data_val[idx],
+            cmap='seismic',
+            edgecolor='white',
+            norm=cls.Normalize(vmin=np.min(self.map_bio), vmax=np.max(self.map_bio))
+        )
+
+        plt.title('Learnt parameter map: %s' % self.rmodel.name)
+        plt.xlabel('PC 1')
+        plt.ylabel('PC 2')
+        cbar = plt.colorbar(map_contour)
+        cbar.set_alpha(1)
+        cbar.draw_all()
+
+        if save_fig:
+            directory = validate_dir('figures/predict_models')
+            plt.savefig('%s/%s_%s_val_err.png' % (directory, save_prefix, self.rmodel.name))
+            plt.close('all')
+        else:
+            plt.show()
 
     def estimate(self, new_bio, time_scale=140):
         est_m_list, est_max_frac_list, est_beta_list, prediction = [], [], [], []
@@ -776,7 +848,7 @@ class BayesianParameterMap(ParameterMap):
             )
             prediction.append(tp_model.repair_fraction_over_time(time_scale).T)
 
-        return np.asarray(prediction), est_m_list, est_max_frac_list, est_beta_list
+        return prediction, est_m_list, est_max_frac_list, est_beta_list
 
 
 
