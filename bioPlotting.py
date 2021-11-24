@@ -4,118 +4,7 @@ import numpy as np
 
 from src.DataLoader import load_chrom_data, load_chrom_split, load_bio_data, create_time_data, load_meres
 from src.Model import RegionModel
-from src.Utils import argparse_bioplotter
-
-
-def create_models(train_data, test_data, do_each=True):
-    (train_trans, train_ntrans, train_igr, train_start_igr, _, train_transcriptome) = train_data
-    (test_trans, test_ntrans, test_igr, test_start_igr, _, test_transcriptome) = test_data
-    if do_each:
-        iter = zip(
-            [
-                train_trans[:, :, 0],
-                train_trans[:, :, 1],
-                train_trans[:, :, 2],
-                train_ntrans[:, :, 0],
-                train_ntrans[:, :, 1],
-                train_ntrans[:, :, 2],
-                train_igr,
-                test_trans[:, :, 0],
-                test_trans[:, :, 1],
-                test_trans[:, :, 2],
-                test_ntrans[:, :, 0],
-                test_ntrans[:, :, 1],
-                test_ntrans[:, :, 2],
-                test_igr
-            ],
-            [
-                'Train genes start',
-                'Train genes centre',
-                'Train genes end',
-                'Train NTS start',
-                'Train NTS centre',
-                'Train NTS end',
-                'Train intergenic regions',
-                'Test genes start',
-                'Test genes centre',
-                'Test genes end',
-                'Test NTS start',
-                'Test NTS centre',
-                'Test NTS end',
-                'Test intergenic regions'
-            ],
-            [
-                'data/jmak/train_trans_start.csv',
-                'data/jmak/train_trans_centre.csv',
-                'data/jmak/train_trans_end.csv',
-                'data/jmak/train_ntrans_start.csv',
-                'data/jmak/train_ntrans_centre.csv',
-                'data/jmak/train_ntrans_end.csv',
-                'data/jmak/train_igr.csv',
-                'data/jmak/test_trans_start.csv',
-                'data/jmak/test_trans_centre.csv',
-                'data/jmak/test_trans_end.csv',
-                'data/jmak/test_ntrans_start.csv',
-                'data/jmak/test_ntrans_centre.csv',
-                'data/jmak/test_ntrans_end.csv',
-                'data/jmak/test_igr.csv'
-            ]
-        )
-    else:
-        iter = zip(
-            [
-                train_trans,
-                train_ntrans,
-                train_igr,
-                test_trans,
-                test_ntrans,
-                test_igr
-            ],
-            [
-                'Train genes total',
-                'Train NTS total',
-                'Train intergenic regions',
-                'Test genes total',
-                'Test NTS total',
-                'Test intergenic regions'
-            ],
-            [
-                'data/jmak/train_trans_total.csv',
-                'data/jmak/train_ntrans_total.csv',
-                'data/jmak/train_igr.csv',
-                'data/jmak/test_trans_total.csv',
-                'data/jmak/test_ntrans_total.csv',
-                'data/jmak/test_igr.csv'
-            ]
-        )
-
-    model_list = []
-    for data, name, file_name in iter:
-        if 'train' in name.lower():
-            if 'trans' in file_name.lower():
-                chrom_list = train_transcriptome['chr'].to_list()
-            else:
-                chrom_list = map(lambda x: x[0], train_start_igr)
-        else:
-            if 'trans' in file_name.lower():
-                chrom_list = test_transcriptome['chr'].to_list()
-            else:
-                chrom_list = map(lambda x: x[0], test_start_igr)
-        if not do_each and 'trans' in file_name:
-            num_pos = 3
-        elif 'igr' in file_name:
-            num_pos = 2
-        else:
-            num_pos = 1
-        region_model = RegionModel(
-            create_time_data(num_pos, len(data)),
-            data.reshape(len(data), -1),
-            name=name
-        )
-        region_model.load_models(file_name, compare_chrom_list=chrom_list)
-        model_list.append(region_model)
-
-    return model_list
+from src.UtilsMain import argparse_bioplotter, create_models
 
 
 def main(args):
@@ -152,9 +41,8 @@ def main(args):
     (_, _, _, train_start_igr, train_end_igr, train_transcriptome) = train_data
     (_, _, _, test_start_igr, test_end_igr, test_transcriptome) = test_data
 
-    trans_rmodels = list(filter(lambda x: 'gene' in x.name.lower(), region_model_list))
+    trans_rmodels = list(filter(lambda x: 'gene' in x.name.lower() or 'nts' in x.name.lower(), region_model_list))
     igr_rmodels = list(filter(lambda x: 'intergenic' in x.name.lower(), region_model_list))
-    nts_rmodels = list(filter(lambda x: 'nts' in x.name.lower(), region_model_list))
 
     if bio_type.lower() == 'slam':
         # SLAM-seq data
