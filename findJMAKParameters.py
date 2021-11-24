@@ -3,7 +3,7 @@ import sys
 
 from src.DataLoader import load_chrom_split, load_chrom_data, create_time_data
 from src.Model import RegionModel
-from src.Utils import argparse_jmak_param
+from src.UtilsMain import argparse_jmak_param
 
 
 def create_model(
