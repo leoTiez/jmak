@@ -101,7 +101,8 @@ def main_nucl(args):
             min_mf=min_mf,
             min_beta=min_beta,
             max_beta=max_beta,
-            num_param_values=num_param_values
+            num_param_values=num_param_values,
+            num_cpus=num_cpus
         )
 
         b_model.learn(
