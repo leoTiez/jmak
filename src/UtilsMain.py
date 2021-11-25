@@ -1,5 +1,9 @@
 import argparse
 
+from tensorflow.keras.models import Model
+from tensorflow.python.keras.layers import deserialize, serialize
+from tensorflow.python.keras.saving import saving_utils
+
 from src.Model import RegionModel
 from src.DataLoader import create_time_data
 
@@ -185,6 +189,19 @@ def argparse_predict(arguments):
     parser.add_argument('--bio_type', type=str, required=True,
                         help='Pass the data type that is used in order to determine the function '
                              'and to make predictions Possible are: slam | nucl | size | meres')
+    parser.add_argument('--ml_type', type=str, required=True,
+                        help='Define the applied machine learning approach which is used to find the parameter map. '
+                             'Possible are: nn | gp')
+    parser.add_argument('--step_size', type=float, default=1e-3,
+                        help='Parameter update step size for the machine learning approaches. If gp is chosen, it is'
+                             'used for fitting hyperparameters. If nn is chosen, it is used as the weight update '
+                             'step size.')
+    parser.add_argument('--num_epochs', type=int, default=200,
+                        help='Number of epochs used for the nn algorithm for learning the function params -> bio. '
+                             'If gp is used, this parameter is ignored.')
+    parser.add_argument('-k_fold', type=int, default=5,
+                        help='Number of k-fold iterations for assessing the quality and variability of the nn mapping.'
+                             'If gp is used, this parameter is ignored.')
     parser.add_argument('--do_each', action='store_true', dest='do_each',
                         help='If set, there is one model per region in each transcript. '
                              'Otherwise beginning, centre of a gene and end are combined in one single model.')
