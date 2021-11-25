@@ -5,9 +5,11 @@ import matplotlib.pyplot as plt
 import pickle
 
 from src.DataLoader import load_chrom_data, load_chrom_split, load_bio_data
-from src.UtilsMain import create_models, argparse_predict
+from src.UtilsMain import create_models, argparse_predict, make_keras_picklable
 from src.Utils import validate_dir
-from src.Model import BayesianParameterMap
+from src.Model import BayesianParameterMap, NNParameterMap
+
+make_keras_picklable()
 
 NUCLEOSOME_INDEX = {
     'nouv': 0,
@@ -17,6 +19,7 @@ NUCLEOSOME_INDEX = {
 
 
 def main_nucl(args):
+    ml_type = args.ml_type
     do_each = args.do_each
     save_fig = args.save_fig
     save_prefix = args.save_prefix
@@ -35,6 +38,9 @@ def main_nucl(args):
     hist_bins = args.hist_bins
     verbosity = args.verbosity
     time_scale = args.time_scale
+    step_size = args.step_size
+    num_epochs = args.num_epochs
+    k_fold = args.k_fold
 
     nucl_index = NUCLEOSOME_INDEX['0min']
 
@@ -72,7 +78,7 @@ def main_nucl(args):
 
     train_data, test_data = [], []
     for rm in region_model_list:
-        if 'gene' in rm.name.lower():
+        if 'gene' in rm.name.lower() or 'nts' in rm.name.lower():
             train_nucl, test_nucl = train_nucl_trans[nucl_index], test_nucl_trans[nucl_index]
         else:
             train_nucl, test_nucl = train_nucl_igr[nucl_index], test_nucl_igr[nucl_index]
@@ -81,7 +87,7 @@ def main_nucl(args):
         else:
             train_data.append((rm, train_nucl))
 
-    gp_models = []
+    ml_models = []
     for rm, train_nucl in train_data:
         temp_m = np.asarray(list(rm.get_model_parameter('m', do_filter=False)))
         temp_beta = np.asarray(list(rm.get_model_parameter('beta', do_filter=False)))
@@ -89,21 +95,39 @@ def main_nucl(args):
         mask = np.logical_and(temp_m < 6., mask)
         mask = np.logical_and(temp_beta < .5, mask)
         rm.models = [model for num, model in enumerate(rm.models) if mask[num]]
-        b_model = BayesianParameterMap(
-            rm,
-            bio_data=train_nucl[mask],
-            kernel_func_type=kernel_func_type,
-            kernel_scaling_init=kernel_scaling_init,
-            kernel_search_verbosity=kernel_search_verbosity,
-            noise_scaling_init=noise_scaling_init,
-            min_m=min_m,
-            max_m=max_m,
-            min_mf=min_mf,
-            min_beta=min_beta,
-            max_beta=max_beta,
-            num_param_values=num_param_values,
-            num_cpus=num_cpus
-        )
+        if ml_type.lower() == 'gp':
+            b_model = BayesianParameterMap(
+                rm,
+                bio_data=train_nucl[mask],
+                kernel_func_type=kernel_func_type,
+                kernel_scaling_init=kernel_scaling_init,
+                kernel_search_verbosity=kernel_search_verbosity,
+                noise_scaling_init=noise_scaling_init,
+                kernel_search_step=step_size,
+                min_m=min_m,
+                max_m=max_m,
+                min_mf=min_mf,
+                min_beta=min_beta,
+                max_beta=max_beta,
+                num_param_values=num_param_values,
+                num_cpus=num_cpus,
+            )
+        elif ml_type == 'nn':
+            b_model = NNParameterMap(
+                rm,
+                bio_data=train_nucl[mask],
+                step_size=step_size,
+                num_epocs=num_epochs,
+                k_fold=k_fold,
+                min_m=min_m,
+                max_m=max_m,
+                min_mf=min_mf,
+                min_beta=min_beta,
+                max_beta=max_beta,
+                num_param_values=num_param_values
+            )
+        else:
+            raise ValueError('ML type not understood.')
 
         b_model.learn(
             num_cpus=num_cpus,
@@ -115,20 +139,23 @@ def main_nucl(args):
         )
         if to_pickle:
             path = validate_dir('models')
-            pfile = open('%s/%s_%s_pickle_file.pkl' % (path, save_prefix, rm.name), 'wb')
-            pickle.dump(b_model, file=pfile)
-            pfile.close()
+            if ml_type.lower() == 'gp':
+                pfile = open('%s/%s_%s_pickle_file_%s.pkl' % (path, save_prefix, rm.name, ml_type), 'wb')
+                pickle.dump(b_model, file=pfile)
+                pfile.close()
+            elif ml_type.lower() == 'nn':
+                b_model.nn.save('%s/%s_%s_keras_file_%s.h5' % (path, save_prefix, rm.name, ml_type))
         b_model.plot_parameter_map(verbosity=verbosity, save_fig=save_fig, save_prefix=save_prefix)
-        gp_models.append(b_model)
+        ml_models.append(b_model)
 
-    for num, (gp, (rm, test_nucl)) in enumerate(zip(gp_models, test_data)):
+    for num, (ml, (rm, test_nucl)) in enumerate(zip(ml_models, test_data)):
         temp_m = np.asarray(list(rm.get_model_parameter('m', do_filter=False)))
         temp_beta = np.asarray(list(rm.get_model_parameter('beta', do_filter=False)))
         mask = ~np.isnan(temp_m)
         mask = np.logical_and(temp_m < 6., mask)
         mask = np.logical_and(temp_beta < .5, mask)
 
-        prediction_list, est_m_list, est_max_frac_list, est_beta_list = gp.estimate(test_nucl[mask])
+        prediction_list, est_m_list, est_max_frac_list, est_beta_list = ml.estimate(test_nucl[mask])
         true_repair_list = rm.get_total_repair_fraction(time_scale=time_scale)[mask]
 
         pred_error_list = []
@@ -170,10 +197,10 @@ def main_nucl(args):
 
         plt.figure(figsize=(8, 7))
         plt.hist(pred_error_list, bins=hist_bins)
-        plt.title('Validation error histogram: %s' % gp.rmodel.name)
+        plt.title('Validation error histogram: %s' % ml.rmodel.name)
         if save_fig:
             directory = validate_dir('figures/predict_models')
-            plt.savefig('%s/%s_%s_prediction_err.png' % (directory, save_prefix, gp.rmodel.name))
+            plt.savefig('%s/%s_%s_prediction_err.png' % (directory, save_prefix, ml.rmodel.name))
             plt.close('all')
         else:
             plt.show()
@@ -244,7 +271,7 @@ def main_nucl(args):
         fig.tight_layout()
         if save_fig:
             directory = validate_dir('figures/predict_models')
-            plt.savefig('%s/%s_%s_parameter_distribution.png' % (directory, save_prefix, gp.rmodel.name))
+            plt.savefig('%s/%s_%s_parameter_distribution.png' % (directory, save_prefix, ml.rmodel.name))
             plt.close('all')
         else:
             plt.show()
