@@ -11,6 +11,11 @@ import multiprocessing
 from sklearn.model_selection import train_test_split, KFold
 from sklearn.decomposition import PCA
 
+import keras
+from tensorflow.keras import layers
+from tensorflow.keras.layers.experimental.preprocessing import Normalization
+import tensorflow as tf
+
 from src.Utils import validate_dir, frequency_bins
 from src.DataLoader import transform_path
 from src.Kernel import *
@@ -929,174 +934,149 @@ class BayesianParameterMap(ParameterMap):
         return val_error
 
 
-# class NNParameterMap(ParameterMap):
-#     def __init__(
-#             self,
-#             rmodel,
-#             bio_data,
-#             layer_sizes=[64, 32, 8],
-#             step_size=1e-3,
-#             num_epocs=200,
-#             k_fold=5,
-#             min_m=.4,
-#             max_m=4.5,
-#             min_mf=.4,
-#             max_mf=1.,
-#             min_beta=8e-3,
-#             max_beta=3.5e-2,
-#             num_param_values=100,
-#             val_frac=.2,
-#             random_state=None,
-#     ):
-#         import keras
-#         from tensorflow.keras import layers
-#         from tensorflow.keras.layers.experimental.preprocessing import Normalization
-#         import tensorflow as tf
-#         if len(rmodel.models) == 1:
-#             raise ValueError('The region model must contain at least two JMAK models.')
-#
-#         super().__init__(
-#             rmodel,
-#             bio_data,
-#             min_m=min_m,
-#             max_m=max_m,
-#             min_mf=min_mf,
-#             max_mf=max_mf,
-#             min_beta=min_beta,
-#             max_beta=max_beta,
-#             num_param_values=num_param_values,
-#             val_frac=val_frac,
-#             random_state=random_state
-#         )
-#         self.num_epochs = num_epocs
-#         self.layer_sizes = layer_sizes
-#         self.step_size = step_size
-#         self.k_fold = k_fold
-#         self.nn = None
-#
-#     def _build_nn(self):
-#         normaliser = Normalization()
-#         normaliser.adapt(np.array(self.data_params))
-#         dense_layers = [layers.Dense(ls, activation='relu') for ls in self.layer_sizes]
-#         layer_list = [normaliser]
-#         layer_list.extend(dense_layers)
-#
-#         self.nn = keras.Sequential(layer_list)
-#         self.nn.compile(
-#             loss='mean_squared_error',
-#             optimizer=tf.keras.optimizers.Adam(self.step_size),
-#             metrics='mean_squared_error'
-#         )
-#
-#
-#     def _train_nn(self, figsize, verbosity=0, save_fig=True, save_prefix=''):
-#         kfold = KFold(n_splits=self.k_fold, shuffle=True)
-#
-#         acc = []
-#         loss = []
-#         hist = np.zeros((self.k_fold, self.num_epochs))
-#         for num, (train_t, test_t) in enumerate(kfold.split(self.data_params, self.bio_data)):
-#             if verbosity > 0:
-#                 print('Fold number %s' % num)
-#             self._build_nn()
-#             h = self.nn.fit(
-#                 self.data_params[train_t],
-#                 self.bio_data[train_t],
-#                 epochs=self.num_epochs,
-#                 verbosity=0
-#             )
-#
-#             hist[num] = np.asarray(h.history['mean_squared_error'])
-#             scores = self.nn.evaluate(self.data_params[test_t], self.bio_data[test_t], verbose=0)
-#             acc.append(scores[1])
-#             loss.append(scores[0])
-#
-#         acc = np.asarray(acc)
-#         loss = np.asarray(loss)
-#         if verbosity > 0:
-#             print('MSE: %s (+- %s)' % (acc.mean(), acc.std()))
-#             print('Loss: %s (+- %s)' % (loss.mean(), loss.std()))
-#             if verbosity > 1:
-#                 plt.figure(figsize=figsize)
-#                 plt.plot(np.mean(hist, axis=0), color='tab:blue')
-#                 plt.fill_between(
-#                     np.arange(self.num_epochs),
-#                     np.mean(hist, axis=0) - np.var(hist, axis=0),
-#                     np.mean(hist, axis=0) + np.var(hist, axis=0),
-#                     color='tab:blue',
-#                     alpha=.2
-#                 )
-#                 plt.title('Learning process')
-#                 plt.ylabel('Mean squared error')
-#                 plt.xlabel('Epoch')
-#                 if save_fig:
-#                     directory = validate_dir('figures/predict_models')
-#                     plt.savefig('%s/%s_%s_nn_learning.png' % (directory, save_prefix, self.rmodel.name))
-#                     plt.close('all')
-#                 else:
-#                     plt.show()
-#
-#     @staticmethod
-#     def det_parameter_mapping(xn, yn, nn):
-#         mean = nn.predict(xn)
-#         var = mean - yn
-#         return mean, var
-#
-#     def learn(
-#             self,
-#             num_cpus=1,
-#             estimate_time=140,
-#             verbosity=0,
-#             figsize=(8, 7),
-#             hist_bins=100,
-#             save_fig=True,
-#             save_prefix=''
-#     ):
-#         self._train_nn(figsize=figsize, verbosity=verbosity, save_fig=save_fig, save_prefix=save_prefix)
-#
-#         mean, var = [], []
-#         if num_cpus < 2:
-#             for xn in self.map_param:
-#                 m, v = self.det_parameter_mapping(xn, self.bio_data, self.nn)
-#                 mean.append(m)
-#                 var.append(v)
-#         else:
-#             num_cpus = np.minimum(multiprocessing.cpu_count() - 1, num_cpus)
-#             with multiprocessing.Pool(processes=num_cpus) as parallel:
-#                 results = []
-#                 for xn in self.map_param:
-#                     results.append(parallel.apply_async(
-#                         self.det_parameter_mapping, (xn, self.bio_data, self.nn,)
-#                     ))
-#                 parallel.close()
-#                 parallel.join()
-#                 results = [r.get() for r in results]
-#                 mean, var = zip(*results)
-#
-#         self.map_bio = np.asarray(mean)
-#         self.learnt_var = np.asarray(var)
-#         predictions, _, _, _ = self.estimate(new_bio=self.bio_data_val, time_scale=estimate_time)
-#         val_error = []
-#         for (m, mf, beta), p in zip(self.data_params_val, predictions):
-#             m = m * self.m_std + self.m_mean
-#             mf = mf * self.max_frac_std + self.max_frac_mean
-#             beta = beta * self.beta_std + self.beta_mean
-#             best_estimation = JMAK(None, None, m=m, max_frac=mf, beta=beta
-#                                    ).repair_fraction_over_time(to_time=estimate_time)
-#             error = self.error(np.arange(estimate_time), best_estimation, np.mean(p, axis=0), np.var(p, axis=0))
-#             val_error.append(error)
-#         if verbosity > 0:
-#             print('Model: %s\tAverage validation error: %.2f' % (self.rmodel.name, np.mean(val_error)))
-#             if verbosity > 1:
-#                 plt.figure(figsize=(8, 7))
-#                 plt.hist(val_error, bins=hist_bins)
-#                 plt.title('Validation error histogram: %s' % self.rmodel.name)
-#                 if save_fig:
-#                     directory = validate_dir('figures/predict_models')
-#                     plt.savefig('%s/%s_%s_val_err.png' % (directory, save_prefix, self.rmodel.name))
-#                     plt.close('all')
-#                 else:
-#                     plt.show()
-#
-#         return val_error
+class NNParameterMap(ParameterMap):
+    def __init__(
+            self,
+            rmodel,
+            bio_data,
+            layer_sizes=[64, 32, 8],
+            step_size=1e-3,
+            num_epocs=200,
+            k_fold=5,
+            min_m=.4,
+            max_m=4.5,
+            min_mf=.4,
+            max_mf=1.,
+            min_beta=8e-3,
+            max_beta=3.5e-2,
+            num_param_values=100,
+            val_frac=.2,
+            random_state=None,
+    ):
+        if len(rmodel.models) == 1:
+            raise ValueError('The region model must contain at least two JMAK models.')
+
+        super().__init__(
+            rmodel,
+            bio_data,
+            min_m=min_m,
+            max_m=max_m,
+            min_mf=min_mf,
+            max_mf=max_mf,
+            min_beta=min_beta,
+            max_beta=max_beta,
+            num_param_values=num_param_values,
+            val_frac=val_frac,
+            random_state=random_state
+        )
+        self.num_epochs = num_epocs
+        self.layer_sizes = layer_sizes
+        self.step_size = step_size
+        self.k_fold = k_fold
+        self.nn = None
+
+    @staticmethod
+    def _build_nn(layer_sizes, step_size):
+        normaliser = layers.BatchNormalization(input_shape=(3, ))
+        dense_layers = [layers.Dense(ls, activation='relu') for ls in layer_sizes]
+        layer_list = [normaliser]
+        layer_list.extend(dense_layers)
+        layer_list.append(layers.Dense(1, activation='relu'))
+
+        nn = keras.Sequential(layer_list)
+        nn.compile(
+            loss='mean_squared_error',
+            optimizer=tf.keras.optimizers.Adam(step_size),
+            metrics=['accuracy', 'mean_squared_error']
+        )
+        return nn
+
+    def _train_nn(self, figsize, verbosity=0, save_fig=True, save_prefix=''):
+        kfold = KFold(n_splits=self.k_fold, shuffle=True)
+
+        acc = []
+        loss = []
+        hist = np.zeros((self.k_fold, self.num_epochs))
+        nn_list = []
+        for num, (train_t, test_t) in enumerate(kfold.split(self.data_params, self.bio_data)):
+            if verbosity > 0:
+                print('Fold number %s' % (num + 1))
+            nn = self._build_nn(self.layer_sizes, self.step_size)
+            nn_list.append(nn)
+            h = nn.fit(
+                self.data_params[train_t],
+                self.bio_data[train_t],
+                epochs=self.num_epochs,
+                verbose=0
+            )
+
+            hist[num] = np.asarray(h.history['mean_squared_error'])
+            scores = nn.evaluate(self.data_params[test_t], self.bio_data[test_t].reshape(-1, 1), verbose=verbosity)
+            loss.append(scores[0])
+
+        loss = np.asarray(loss)
+        self.nn = nn_list[np.random.choice(len(loss))]
+        if verbosity > 0:
+            print('Loss: %s (+- %s)' % (loss.mean(), loss.std()))
+            if verbosity > 1:
+                plt.figure(figsize=figsize)
+                plt.plot(np.mean(hist, axis=0), color='tab:blue')
+                plt.fill_between(
+                    np.arange(self.num_epochs),
+                    np.mean(hist, axis=0) - np.var(hist, axis=0),
+                    np.mean(hist, axis=0) + np.var(hist, axis=0),
+                    color='tab:blue',
+                    alpha=.2
+                )
+                plt.title('Learning process: %s' % self.rmodel.name)
+                plt.ylabel('Mean squared error')
+                plt.xlabel('Epoch')
+                if save_fig:
+                    directory = validate_dir('figures/predict_models')
+                    plt.savefig('%s/%s_%s_nn_learning.png' % (directory, save_prefix, self.rmodel.name))
+                    plt.close('all')
+                else:
+                    plt.show()
+
+        return np.var(hist, axis=0)
+
+    def learn(
+            self,
+            num_cpus=1,
+            estimate_time=140,
+            verbosity=0,
+            figsize=(8, 7),
+            hist_bins=100,
+            save_fig=True,
+            save_prefix=''
+    ):
+        # Use only single variance value
+        var_over_train = self._train_nn(figsize=figsize, verbosity=verbosity, save_fig=save_fig, save_prefix=save_prefix)
+        self.learnt_var = var_over_train[-1]
+        self.map_bio = self.nn.predict(self.map_param).reshape(-1)
+
+        predictions, _, _, _ = self.estimate(new_bio=self.bio_data_val, time_scale=estimate_time)
+        val_error = []
+        for (m, mf, beta), p in zip(self.data_params_val, predictions):
+            m = m * self.m_std + self.m_mean
+            mf = mf * self.max_frac_std + self.max_frac_mean
+            beta = beta * self.beta_std + self.beta_mean
+            best_estimation = JMAK(None, None, m=m, max_frac=mf, beta=beta
+                                   ).repair_fraction_over_time(to_time=estimate_time)
+            error = self.error(np.arange(estimate_time), best_estimation, np.mean(p, axis=0), np.var(p, axis=0))
+            val_error.append(error)
+        if verbosity > 0:
+            print('Model: %s\tAverage validation error: %.2f' % (self.rmodel.name, np.mean(val_error)))
+            if verbosity > 1:
+                plt.figure(figsize=(8, 7))
+                plt.hist(val_error, bins=hist_bins)
+                plt.title('Validation error histogram: %s' % self.rmodel.name)
+                if save_fig:
+                    directory = validate_dir('figures/predict_models')
+                    plt.savefig('%s/%s_%s_val_err.png' % (directory, save_prefix, self.rmodel.name))
+                    plt.close('all')
+                else:
+                    plt.show()
+
+        return val_error
 
