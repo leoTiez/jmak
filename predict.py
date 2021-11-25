@@ -5,11 +5,10 @@ import matplotlib.pyplot as plt
 import pickle
 
 from src.DataLoader import load_chrom_data, load_chrom_split, load_bio_data
-from src.UtilsMain import create_models, argparse_predict, make_keras_picklable
+from src.UtilsMain import create_models, argparse_predict
 from src.Utils import validate_dir
 from src.Model import BayesianParameterMap, NNParameterMap
 
-make_keras_picklable()
 
 NUCLEOSOME_INDEX = {
     'nouv': 0,
