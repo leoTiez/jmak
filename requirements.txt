@@ -4,3 +4,5 @@ matplotlib>=3.4
 statsmodels>=0.13
 -e git+https://git@github.com/leoTiez/seqDataHandler.git@v1.3.4#egg=seqDataHandler
 scikit-learn>=0.24
+keras>=2.6
+tensorflow>=2.6
