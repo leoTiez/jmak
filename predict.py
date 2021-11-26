@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 import sys
+import os
 import numpy as np
 import matplotlib.pyplot as plt
 import pickle
+from tensorflow.keras.models import load_model
 
 from src.DataLoader import load_chrom_data, load_chrom_split, load_bio_data
 from src.UtilsMain import create_models, argparse_predict
@@ -40,6 +42,9 @@ def main_nucl(args):
     step_size = args.step_size
     num_epochs = args.num_epochs
     k_fold = args.k_fold
+    plotted_dp = args.plotted_dp
+    load_if_exist = args.load_if_exist
+    rm_percentile = args.rm_percentile
 
     nucl_index = NUCLEOSOME_INDEX['0min']
 
@@ -49,7 +54,8 @@ def main_nucl(args):
         'data/seq/nucl_wt_30min.bw'
     ]
 
-    print('Load CPD')
+    if verbosity > 0:
+        print('Load CPD')
     train_chrom = load_chrom_split('train')
     test_chrom = load_chrom_split('test')
     train_data, test_data = load_chrom_data(train_chrom_list=train_chrom, test_chrom_list=test_chrom)
@@ -58,6 +64,8 @@ def main_nucl(args):
     (_, _, _, train_start_igr, train_end_igr, train_transcriptome) = train_data
     (_, _, _, test_start_igr, test_end_igr, test_transcriptome) = test_data
 
+    if verbosity > 0:
+        print('Load bio data')
     train_nucl_trans, test_nucl_trans = load_bio_data(
         zip(train_transcriptome['chr'].to_list(), train_transcriptome['start'].to_list()),
         zip(train_transcriptome['chr'].to_list(), train_transcriptome['end'].to_list()),
@@ -87,13 +95,47 @@ def main_nucl(args):
             train_data.append((rm, train_nucl))
 
     ml_models = []
+    if verbosity > 0:
+        print('Learn models')
     for rm, train_nucl in train_data:
+        if verbosity > 0:
+            print('Create parameter mapping for model %s' % rm.name)
         temp_m = np.asarray(list(rm.get_model_parameter('m', do_filter=False)))
         temp_beta = np.asarray(list(rm.get_model_parameter('beta', do_filter=False)))
         mask = ~np.isnan(temp_m)
         mask = np.logical_and(temp_m < 6., mask)
         mask = np.logical_and(temp_beta < .5, mask)
         rm.models = [model for num, model in enumerate(rm.models) if mask[num]]
+        if load_if_exist:
+            mfile_name = ''
+            path = '%s/models' % os.getcwd()
+            mfile_name = '%s/%s_%s_pickle_file_%s.pkl' % (path, save_prefix, rm.name, ml_type)
+            if ml_type.lower() == 'nn':
+                nnfile_name = '%s/%s_%s_keras_file_%s.h5' % (path, save_prefix, rm.name, ml_type)
+            else:
+                raise ValueError('ML type not understood.')
+
+            if os.path.isfile(mfile_name):
+                if verbosity > 0:
+                    print('Found model file. Load model.')
+                b_model = pickle.load(open(mfile_name, 'rb'))
+                if ml_type.lower() == 'nn':
+                    if os.path.isfile(nnfile_name):
+                        b_model.nn = load_model(nnfile_name)
+                        ml_models.append(b_model)
+                        continue
+                    else:
+                        if verbosity > 0:
+                            print('Could not find nn file. Create new ml object.')
+                        b_model = None
+                else:
+                    ml_models.append(b_model)
+                    continue
+            else:
+                if verbosity > 0:
+                    print('Could not find existing ml file. Create new ml object.')
+        if verbosity > 1:
+            print('Init model')
         if ml_type.lower() == 'gp':
             b_model = BayesianParameterMap(
                 rm,
@@ -109,6 +151,7 @@ def main_nucl(args):
                 min_beta=min_beta,
                 max_beta=max_beta,
                 num_param_values=num_param_values,
+                rm_percentile=rm_percentile,
                 num_cpus=num_cpus,
             )
         elif ml_type == 'nn':
@@ -123,11 +166,15 @@ def main_nucl(args):
                 min_mf=min_mf,
                 min_beta=min_beta,
                 max_beta=max_beta,
+                num_cpus=num_cpus,
+                rm_percentile=rm_percentile,
                 num_param_values=num_param_values
             )
         else:
             raise ValueError('ML type not understood.')
 
+        if verbosity > 1:
+            print('Train model')
         b_model.learn(
             num_cpus=num_cpus,
             verbosity=verbosity,
@@ -137,17 +184,35 @@ def main_nucl(args):
             estimate_time=time_scale
         )
         if to_pickle:
+            if verbosity > 1:
+                print('Save model to file')
             path = validate_dir('models')
-            if ml_type.lower() == 'gp':
-                pfile = open('%s/%s_%s_pickle_file_%s.pkl' % (path, save_prefix, rm.name, ml_type), 'wb')
-                pickle.dump(b_model, file=pfile)
-                pfile.close()
-            elif ml_type.lower() == 'nn':
+            if ml_type.lower() == 'nn':
+                # Save nn separately as it cannot be pickled.
                 b_model.nn.save('%s/%s_%s_keras_file_%s.h5' % (path, save_prefix, rm.name, ml_type))
-        b_model.plot_parameter_map(verbosity=verbosity, save_fig=save_fig, save_prefix=save_prefix)
+                b_model.nn = None
+
+            pfile = open('%s/%s_%s_pickle_file_%s.pkl' % (path, save_prefix, rm.name, ml_type), 'wb')
+            pickle.dump(b_model, file=pfile)
+            pfile.close()
+            if ml_type.lower() == 'nn':
+                b_model.nn = load_model('%s/%s_%s_keras_file_%s.h5' % (path, save_prefix, rm.name, ml_type))
+
+        if verbosity > 1:
+            print('Plot parameter map')
+        b_model.plot_parameter_map(
+            verbosity=verbosity,
+            save_fig=save_fig,
+            save_prefix=save_prefix,
+            plotted_dp=plotted_dp
+        )
         ml_models.append(b_model)
 
+    if verbosity > 0:
+        print('Predict')
     for num, (ml, (rm, test_nucl)) in enumerate(zip(ml_models, test_data)):
+        if verbosity > 1:
+            print('Predict model %s' % rm.name)
         temp_m = np.asarray(list(rm.get_model_parameter('m', do_filter=False)))
         temp_beta = np.asarray(list(rm.get_model_parameter('beta', do_filter=False)))
         mask = ~np.isnan(temp_m)
@@ -189,7 +254,7 @@ def main_nucl(args):
                 plt.title('Prediction vs data: %s\nError: %.2f' % (jmak_model.name, error))
                 if save_fig:
                     directory = validate_dir('figures/predict_models/jmak')
-                    plt.savefig('%s/%s_%s_prediction.png' % (directory, save_prefix, jmak_model.name))
+                    plt.savefig('%s/%s_%s_%s_prediction.png' % (directory, save_prefix, ml.rmodel.name, jmak_model.name))
                     plt.close('all')
                 else:
                     plt.show()
