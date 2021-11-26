@@ -9,3 +9,7 @@ __pycache__
 figures
 !plots/data-grid*
 models
+/__pycache__
+/.vscode
+*.err
+*.out
