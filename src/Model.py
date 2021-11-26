@@ -473,24 +473,34 @@ class ParameterMap(ABC):
             min_beta=8e-3,
             max_beta=3.5e-2,
             val_frac=.2,
+            rm_percentile=5.,
             random_state=None,
             num_param_values=100
     ):
         if len(rmodel.models) != len(bio_data):
             raise ValueError('The number of region models must be equal to the number of biological data points.')
         self.rmodel = rmodel
-        self.all_bio_data = bio_data
         self.map_bio = None
         self.learnt_var = 0
         self.val_frac = val_frac
         self.random_state = random_state
         m_shape = np.asarray(list(self.rmodel.get_model_parameter('m')))
-        max_frac = np.asarray(list(self.rmodel.get_model_parameter('max_frac')))
-        beta = np.asarray(list(self.rmodel.get_model_parameter('beta')))
+        lower, upper = np.percentile(m_shape, [rm_percentile / 2., 100. - rm_percentile / 2.])
+        m_shape_mask = np.logical_and(m_shape > lower, m_shape < upper)
 
-        m_shape, self.m_mean, self.m_std = ParameterMap.normalise(m_shape)
-        max_frac, self.max_frac_mean, self.max_frac_std = ParameterMap.normalise(max_frac)
-        beta, self.beta_mean, self.beta_std = ParameterMap.normalise(beta)
+        max_frac = np.asarray(list(self.rmodel.get_model_parameter('max_frac')))
+        lower, upper = np.percentile(max_frac, [rm_percentile / 2., 100. - rm_percentile / 2.])
+        max_frac_mask = np.logical_and(max_frac > lower, max_frac < upper)
+
+        beta = np.asarray(list(self.rmodel.get_model_parameter('beta')))
+        lower, upper = np.percentile(beta, [rm_percentile / 2., 100. - rm_percentile / 2.])
+        beta_mask = np.logical_and(beta > lower, beta < upper)
+
+        param_mask = np.logical_and(m_shape_mask, np.logical_and(max_frac_mask, beta_mask))
+        self.all_bio_data = bio_data[param_mask]
+        m_shape, self.m_mean, self.m_std = ParameterMap.normalise(m_shape[param_mask])
+        max_frac, self.max_frac_mean, self.max_frac_std = ParameterMap.normalise(max_frac[param_mask])
+        beta, self.beta_mean, self.beta_std = ParameterMap.normalise(beta[param_mask])
         self.all_data_params = np.asarray([m_shape, max_frac, beta]).T
         self.data_params, self.data_params_val, self.bio_data, self.bio_data_val = None, None, None, None
         self.reshuffle()
@@ -585,7 +595,7 @@ class ParameterMap(ABC):
 
         if save_fig:
             directory = validate_dir('figures/predict_models')
-            plt.savefig('%s/%s_%s_val_err.png' % (directory, save_prefix, self.rmodel.name))
+            plt.savefig('%s/%s_%s_learnt_map.png' % (directory, save_prefix, self.rmodel.name))
             plt.close('all')
         else:
             plt.show()
@@ -606,15 +616,22 @@ class ParameterMap(ABC):
     ):
         pass
 
-    def estimate(self, new_bio, time_scale=140):
+    def estimate(self, new_bio, max_nclose=500, time_scale=140):
         est_m_list, est_max_frac_list, est_beta_list, prediction = [], [], [], []
         for nb in new_bio:
             distances = np.abs(self.map_bio - nb)
-            idc = np.where(distances - np.sqrt(self.learnt_var) <= np.min(distances))[0]
+            distances_in_var = distances - np.sqrt(self.learnt_var)
+            k = np.minimum(len(distances_in_var) - 1, max_nclose)
+            mask = distances_in_var <= 0
+            mask_k = np.zeros(len(distances_in_var), dtype='bool')
+            mask_k[np.argpartition(distances_in_var, k)[:k]] = True
+            mask = np.logical_and(mask, mask_k)
+            if not np.any(mask):
+                mask[np.argpartition(distances_in_var, k)[:k]] = True
             est_m, est_max_frac, est_beta = (
-                self.map_m.reshape(-1)[idc],
-                self.map_max_frac.reshape(-1)[idc],
-                self.map_beta.reshape(-1)[idc]
+                self.map_m.reshape(-1)[mask],
+                self.map_max_frac.reshape(-1)[mask],
+                self.map_beta.reshape(-1)[mask]
             )
 
             est_m_list.append(est_m)
@@ -653,6 +670,7 @@ class BayesianParameterMap(ParameterMap):
             max_beta=3.5e-2,
             num_param_values=100,
             val_frac=.2,
+            rm_percentile=5.,
             num_cpus=1.,
             random_state=None,
             do_estimate_hp=True
@@ -670,6 +688,7 @@ class BayesianParameterMap(ParameterMap):
             min_beta=min_beta,
             max_beta=max_beta,
             num_param_values=num_param_values,
+            rm_percentile=rm_percentile,
             val_frac=val_frac,
             random_state=random_state
         )
@@ -951,6 +970,8 @@ class NNParameterMap(ParameterMap):
             max_beta=3.5e-2,
             num_param_values=100,
             val_frac=.2,
+            rm_percentile=5.,
+            num_cpus=4,
             random_state=None,
     ):
         if len(rmodel.models) == 1:
@@ -967,8 +988,12 @@ class NNParameterMap(ParameterMap):
             max_beta=max_beta,
             num_param_values=num_param_values,
             val_frac=val_frac,
+            rm_percentile=rm_percentile,
             random_state=random_state
         )
+
+        tf.config.threading.set_intra_op_parallelism_threads(num_cpus)
+        tf.config.threading.set_inter_op_parallelism_threads(num_cpus)
         self.num_epochs = num_epocs
         self.layer_sizes = layer_sizes
         self.step_size = step_size
@@ -976,8 +1001,9 @@ class NNParameterMap(ParameterMap):
         self.nn = None
 
     @staticmethod
-    def _build_nn(layer_sizes, step_size):
-        normaliser = layers.BatchNormalization(input_shape=(3, ))
+    def _build_nn(input_data, layer_sizes, step_size):
+        normaliser = layers.Normalization(input_shape=(3, ), axis=None)
+        normaliser.adapt(input_data)
         dense_layers = [layers.Dense(ls, activation='relu') for ls in layer_sizes]
         layer_list = [normaliser]
         layer_list.extend(dense_layers)
@@ -991,7 +1017,7 @@ class NNParameterMap(ParameterMap):
         )
         return nn
 
-    def _train_nn(self, figsize, verbosity=0, save_fig=True, save_prefix=''):
+    def _train_nn(self, batch_size=30, figsize=(8, 7), verbosity=0, save_fig=True, save_prefix=''):
         kfold = KFold(n_splits=self.k_fold, shuffle=True)
 
         acc = []
@@ -1001,23 +1027,29 @@ class NNParameterMap(ParameterMap):
         for num, (train_t, test_t) in enumerate(kfold.split(self.data_params, self.bio_data)):
             if verbosity > 0:
                 print('Fold number %s' % (num + 1))
-            nn = self._build_nn(self.layer_sizes, self.step_size)
+            nn = self._build_nn(self.data_params, self.layer_sizes, self.step_size)
             nn_list.append(nn)
             h = nn.fit(
                 self.data_params[train_t],
                 self.bio_data[train_t],
                 epochs=self.num_epochs,
+                batch_size=batch_size,
                 verbose=0
             )
 
             hist[num] = np.asarray(h.history['mean_squared_error'])
-            scores = nn.evaluate(self.data_params[test_t], self.bio_data[test_t].reshape(-1, 1), verbose=verbosity)
+            scores = nn.evaluate(
+                self.data_params[test_t],
+                self.bio_data[test_t].reshape(-1, 1),
+                batch_size=batch_size,
+                verbose=verbosity
+            )
             loss.append(scores[0])
 
         loss = np.asarray(loss)
         self.nn = nn_list[np.random.choice(len(loss))]
         if verbosity > 0:
-            print('Loss: %s (+- %s)' % (loss.mean(), loss.std()))
+            print('Loss: %s (+- %s)' % (np.mean(loss), np.std(loss)))
             if verbosity > 1:
                 plt.figure(figsize=figsize)
                 plt.plot(np.mean(hist, axis=0), color='tab:blue')
@@ -1038,11 +1070,12 @@ class NNParameterMap(ParameterMap):
                 else:
                     plt.show()
 
-        return np.var(hist, axis=0)
+        return np.mean(loss) + np.std(loss)
 
     def learn(
             self,
             num_cpus=1,
+            batch_size=30,
             estimate_time=140,
             verbosity=0,
             figsize=(8, 7),
@@ -1051,10 +1084,21 @@ class NNParameterMap(ParameterMap):
             save_prefix=''
     ):
         # Use only single variance value
-        var_over_train = self._train_nn(figsize=figsize, verbosity=verbosity, save_fig=save_fig, save_prefix=save_prefix)
-        self.learnt_var = var_over_train[-1]
-        self.map_bio = self.nn.predict(self.map_param).reshape(-1)
+        if verbosity > 0:
+            print('Train NN')
+        self.learnt_var = self._train_nn(
+            batch_size=batch_size,
+            figsize=figsize, 
+            verbosity=verbosity,
+            save_fig=save_fig,
+            save_prefix=save_prefix
+        )
+        if verbosity > 0:
+            print('Predict parameter map')
+        self.map_bio = self.nn.predict(self.map_param, batch_size=batch_size).reshape(-1)
 
+        if verbosity > 0:
+            print('Validate learnt parameter map')
         predictions, _, _, _ = self.estimate(new_bio=self.bio_data_val, time_scale=estimate_time)
         val_error = []
         for (m, mf, beta), p in zip(self.data_params_val, predictions):
