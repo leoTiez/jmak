@@ -222,13 +222,13 @@ def argparse_predict(arguments):
     parser.add_argument('--noise_scaling_init', type=int, default=5,
                         help='Set the initialisation scaling of the noise. The initial value is determined by '
                              '{random number} * noise_scaling_init.')
-    parser.add_argument('--min_m', type=float, default=.4,
+    parser.add_argument('--min_m', type=float, default=.8,
                         help='Minimum value for shaping parameter m for learnt parameter map.')
-    parser.add_argument('--max_m', type=float, default=5.,
+    parser.add_argument('--max_m', type=float, default=4.,
                         help='Maximum value for shaping parameter m for learnt parameter map.')
     parser.add_argument('--min_beta', type=float, default=8e-3,
                         help='Minimum value for scaling parameter beta for learnt parameter map.')
-    parser.add_argument('--max_beta', type=float, default=3.5e-2,
+    parser.add_argument('--max_beta', type=float, default=4.5e-2,
                         help='Maximum value for shaping scaling parameter beta for learnt parameter map.')
     parser.add_argument('--min_mf', type=float, default=.5,
                         help='Minimum value for maximum fraction parameter for learnt parameter map.')
@@ -239,6 +239,14 @@ def argparse_predict(arguments):
                         help='Number of processes used for speeding up computations.')
     parser.add_argument('--hist_bins', type=int, default=100,
                         help='Number of bins that are created when computing histograms.')
+    parser.add_argument('--plotted_dp', type=int, default=500,
+                        help='Numper of points plotted in the parameter map plot.')
+    parser.add_argument('--load_if_exist', action='store_true', dest='load_if_exist',
+                        help='If set, the ml model is loaded from a file '
+                             'if it is exists instead of creating a new model')
+    parser.add_argument('--rm_percentile', type=float, default=5.,
+                        help='The amount of outliers that is removed from the parameter data. Ignore all values'
+                             'lower than rm_percentile / 2. and larger than 100 - rm_percentile / 2.')
     parser.add_argument('--verbosity', type=int, default=0,
                         help='Verbosity level.')
     parser.add_argument('--time_scale', type=int, default=140,
