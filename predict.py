@@ -9,7 +9,7 @@ from tensorflow.keras.models import load_model
 from src.DataLoader import load_chrom_data, load_chrom_split, load_bio_data
 from src.UtilsMain import create_models, argparse_predict
 from src.Utils import validate_dir
-from src.Model import BayesianParameterMap, NNParameterMap
+from src.Model import BayesianParameterMap, NNParameterMap, ParameterMap
 
 
 NUCLEOSOME_INDEX = {
@@ -213,6 +213,7 @@ def main_nucl(args):
     for num, (ml, (rm, test_nucl)) in enumerate(zip(ml_models, test_data)):
         if verbosity > 1:
             print('Predict model %s' % rm.name)
+
         temp_m = np.asarray(list(rm.get_model_parameter('m', do_filter=False)))
         temp_beta = np.asarray(list(rm.get_model_parameter('beta', do_filter=False)))
         mask = ~np.isnan(temp_m)
@@ -223,8 +224,9 @@ def main_nucl(args):
         true_repair_list = rm.get_total_repair_fraction(time_scale=time_scale)[mask]
 
         pred_error_list = []
-        for true_repair, pred, jmak_model in zip(true_repair_list, prediction_list, rm.models):
-            error = BayesianParameterMap.error(
+        inv_models = [im for num, im in enumerate(rm.models) if mask[num]]
+        for true_repair, pred, jmak_model in zip(true_repair_list, prediction_list, inv_models):
+            error = ParameterMap.error(
                 np.arange(time_scale),
                 real_data=true_repair,
                 est_mean=np.mean(pred, axis=0),
@@ -261,7 +263,7 @@ def main_nucl(args):
 
         plt.figure(figsize=(8, 7))
         plt.hist(pred_error_list, bins=hist_bins)
-        plt.title('Validation error histogram: %s' % ml.rmodel.name)
+        plt.title('Validation error histogram: %s\nMean error: %.2f' % (ml.rmodel.name, np.mean(pred_error_list)))
         if save_fig:
             directory = validate_dir('figures/predict_models')
             plt.savefig('%s/%s_%s_prediction_err.png' % (directory, save_prefix, ml.rmodel.name))
