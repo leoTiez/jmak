@@ -196,6 +196,8 @@ def argparse_predict(arguments):
                         help='Parameter update step size for the machine learning approaches. If gp is chosen, it is'
                              'used for fitting hyperparameters. If nn is chosen, it is used as the weight update '
                              'step size.')
+    parser.add_argument('--neg_random', action='store_true', dest='neg_random',
+                        help='If set, the biological feature data is randomly shuffled to create a negative control.')
     parser.add_argument('--num_epochs', type=int, default=200,
                         help='Number of epochs used for the nn algorithm for learning the function params -> bio. '
                              'If gp is used, this parameter is ignored.')
