@@ -219,9 +219,6 @@ def main_nucl(args):
     for num, (ml, (rm, test_nucl)) in enumerate(zip(ml_models, test_data)):
         if verbosity > 1:
             print('Predict model %s' % rm.name)
-        if rm.name in ['Test genes start', 'Test genes centre', 'Test genes end', 'Test NTS start']:
-            print('Skip')
-            continue
 
         temp_m = np.asarray(list(rm.get_model_parameter('m', do_filter=False)))
         temp_beta = np.asarray(list(rm.get_model_parameter('beta', do_filter=False)))
