@@ -45,6 +45,7 @@ def main_nucl(args):
     plotted_dp = args.plotted_dp
     load_if_exist = args.load_if_exist
     rm_percentile = args.rm_percentile
+    neg_random = args.neg_random
 
     nucl_index = NUCLEOSOME_INDEX['0min']
 
@@ -89,6 +90,11 @@ def main_nucl(args):
             train_nucl, test_nucl = train_nucl_trans[nucl_index], test_nucl_trans[nucl_index]
         else:
             train_nucl, test_nucl = train_nucl_igr[nucl_index], test_nucl_igr[nucl_index]
+
+        if neg_random:
+            np.random.shuffle(train_nucl)
+            np.random.shuffle(test_nucl)
+
         if 'test' in rm.name.lower():
             test_data.append((rm, test_nucl))
         else:
@@ -213,6 +219,9 @@ def main_nucl(args):
     for num, (ml, (rm, test_nucl)) in enumerate(zip(ml_models, test_data)):
         if verbosity > 1:
             print('Predict model %s' % rm.name)
+        if rm.name in ['Test genes start', 'Test genes centre', 'Test genes end', 'Test NTS start']:
+            print('Skip')
+            continue
 
         temp_m = np.asarray(list(rm.get_model_parameter('m', do_filter=False)))
         temp_beta = np.asarray(list(rm.get_model_parameter('beta', do_filter=False)))
@@ -221,55 +230,6 @@ def main_nucl(args):
         mask = np.logical_and(temp_beta < .5, mask)
 
         prediction_list, est_m_list, est_max_frac_list, est_beta_list = ml.estimate(test_nucl[mask])
-        true_repair_list = rm.get_total_repair_fraction(time_scale=time_scale)[mask]
-
-        pred_error_list = []
-        inv_models = [im for num, im in enumerate(rm.models) if mask[num]]
-        for true_repair, pred, jmak_model in zip(true_repair_list, prediction_list, inv_models):
-            error = ParameterMap.error(
-                np.arange(time_scale),
-                real_data=true_repair,
-                est_mean=np.mean(pred, axis=0),
-                est_var=np.var(pred, axis=0)
-            )
-            pred_error_list.append(error)
-            if verbosity > 1:
-                plt.figure(figsize=(8, 7))
-                plt.plot(np.arange(time_scale), true_repair, color='red', label='True')
-                plt.plot(np.arange(time_scale), np.mean(pred, axis=0), color='blue', label='Prediction')
-                plt.fill_between(
-                    np.arange(time_scale),
-                    np.mean(pred, axis=0) - np.var(pred, axis=0),
-                    np.mean(pred, axis=0) + np.var(pred, axis=0),
-                    alpha=.2,
-                    color='blue'
-                )
-                plt.scatter(
-                    jmak_model.time_points.reshape(-1),
-                    jmak_model.data_points.reshape(-1),
-                    color='blue',
-                    label='Data'
-                )
-                plt.legend(loc='lower right')
-                plt.xlabel('Time')
-                plt.ylabel('Repair fraction')
-                plt.title('Prediction vs data: %s\nError: %.2f' % (jmak_model.name, error))
-                if save_fig:
-                    directory = validate_dir('figures/predict_models/jmak')
-                    plt.savefig('%s/%s_%s_%s_prediction.png' % (directory, save_prefix, ml.rmodel.name, jmak_model.name))
-                    plt.close('all')
-                else:
-                    plt.show()
-
-        plt.figure(figsize=(8, 7))
-        plt.hist(pred_error_list, bins=hist_bins)
-        plt.title('Validation error histogram: %s\nMean error: %.2f' % (ml.rmodel.name, np.mean(pred_error_list)))
-        if save_fig:
-            directory = validate_dir('figures/predict_models')
-            plt.savefig('%s/%s_%s_prediction_err.png' % (directory, save_prefix, ml.rmodel.name))
-            plt.close('all')
-        else:
-            plt.show()
 
         fig, ax = plt.subplots(3, 1, figsize=(8, 7))
         ax[0].hist(
@@ -338,6 +298,59 @@ def main_nucl(args):
         if save_fig:
             directory = validate_dir('figures/predict_models')
             plt.savefig('%s/%s_%s_parameter_distribution.png' % (directory, save_prefix, ml.rmodel.name))
+            plt.close('all')
+        else:
+            plt.show()
+
+        true_repair_list = rm.get_total_repair_fraction(time_scale=time_scale)[mask]
+
+        pred_error_list = []
+        inv_models = [im for num, im in enumerate(rm.models) if mask[num]]
+        for true_repair, pred, jmak_model in zip(true_repair_list, prediction_list, inv_models):
+            error = ParameterMap.error(
+                np.arange(time_scale),
+                real_data=true_repair,
+                est_mean=np.mean(pred, axis=0),
+                est_var=np.var(pred, axis=0)
+            )
+            pred_error_list.append(error)
+            if verbosity > 1:
+                plt.figure(figsize=(8, 7))
+                plt.plot(np.arange(time_scale), true_repair, color='red', label='True')
+                plt.plot(np.arange(time_scale), np.mean(pred, axis=0), color='blue', label='Prediction')
+                plt.fill_between(
+                    np.arange(time_scale),
+                    np.mean(pred, axis=0) - np.var(pred, axis=0),
+                    np.mean(pred, axis=0) + np.var(pred, axis=0),
+                    alpha=.2,
+                    color='blue'
+                )
+                plt.scatter(
+                    jmak_model.time_points.reshape(-1),
+                    jmak_model.data_points.reshape(-1),
+                    color='blue',
+                    label='Data'
+                )
+                plt.legend(loc='lower right')
+                plt.xlabel('Time')
+                plt.ylabel('Repair fraction')
+                plt.title('Prediction vs data: %s\nError: %.2f' % (jmak_model.name, error))
+                if save_fig:
+                    directory = validate_dir('figures/predict_models/jmak')
+                    plt.savefig('%s/%s_%s_%s_prediction.png' % (directory, save_prefix, ml.rmodel.name, jmak_model.name))
+                    plt.close('all')
+                else:
+                    plt.show()
+
+        if save_fig:
+            directory = validate_dir('arrays')
+            np.savetxt('%s/%s_%s.csv' % (directory, save_prefix, ml.rmodel.name), np.asarray(pred_error_list), delimiter=',')
+        plt.figure(figsize=(8, 7))
+        plt.hist(pred_error_list, bins=hist_bins)
+        plt.title('Validation error histogram: %s\nMean error: %.2f' % (ml.rmodel.name, np.mean(pred_error_list)))
+        if save_fig:
+            directory = validate_dir('figures/predict_models')
+            plt.savefig('%s/%s_%s_prediction_err.png' % (directory, save_prefix, ml.rmodel.name))
             plt.close('all')
         else:
             plt.show()
