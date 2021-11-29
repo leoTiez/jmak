@@ -539,19 +539,11 @@ class ParameterMap(ABC):
 
     @staticmethod
     def error(time_sample, real_data, est_mean, est_var):
+        # compute the mean squared prediction error
         time_sample = np.asarray(time_sample)
         mask = time_sample > 0
-        s = np.abs(np.asarray(est_mean) - np.asarray(real_data))
-        # Discount for prediction within std
-        s[
-            np.logical_and(s <= est_var[time_sample], mask)
-        ] *= s[np.logical_and(s <= est_var[time_sample], mask)] / est_var[
-            np.logical_and(s <= est_var[time_sample], mask)]
-
-        # Penalty for large std
-        s += est_var * s
-
-        return 100 * np.mean(s)
+        s = np.sum((np.asarray(est_mean) - np.asarray(real_data))**2)
+        return (s + np.sum(est_var)) / float(len(real_data))
 
     def plot_parameter_map(
             self,
