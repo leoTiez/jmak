@@ -661,6 +661,8 @@ class BayesianParameterMap(ParameterMap):
             kernel_search_verbosity=0,
             kernel_param_min=.001,
             kernel_scaling_init=5.,
+            kernel_random_ratio=.3,
+            kernel_max_iter=10000,
             noise_scaling_init=2.,
             min_m=.4,
             max_m=4.5,
@@ -702,7 +704,9 @@ class BayesianParameterMap(ParameterMap):
                     kernel_scaling_init,
                     noise_scaling_init,
                     kernel_param_min,
-                    kernel_search_verbosity
+                    kernel_search_verbosity,
+                    random_ratio=kernel_random_ratio,
+                    max_iter=kernel_max_iter
                 )
             else:
                 # Dummy parameters for testing
@@ -752,31 +756,44 @@ class BayesianParameterMap(ParameterMap):
                 parallel.join()
             C = np.asarray(result).reshape(data.shape[0], data.shape[0])
 
-        inv_C = np.linalg.inv(C)
+        inv_C = np.linalg.pinv(C)
         return C, inv_C
 
-    def jac(self, sub_jac, inv_C):
+    @staticmethod
+    def jac(sub_jac, inv_C, bio_d):
         return (
                 -.5 * np.trace(inv_C.dot(sub_jac))
-                + 0.5 * self.bio_data.dot(inv_C.dot(sub_jac.dot(self.bio_data.T)))
+                + 0.5 * bio_d.dot(inv_C.dot(sub_jac.dot(bio_d.T)))
         )
 
     @staticmethod
     def _subjac_precision(size, precision):
         return - np.eye(size) * precision**(-2)
 
-    def _optimise_eqk_param(self, step_size, thresh, scaling_init, noise_scaling_init, min_param, verbosity):
+    def _optimise_eqk_param(
+            self,
+            step_size,
+            thresh,
+            scaling_init,
+            noise_scaling_init,
+            min_param,
+            verbosity,
+            random_ratio=.3,
+            max_iter=10000
+    ):
         theta_old = np.ones(4) * 999
         s = np.ones(4) * scaling_init
         s[-1] = noise_scaling_init
         theta_new = np.random.random(4) + s
-        while np.linalg.norm(theta_old - theta_new) > thresh:
+        counter = 0
+        while np.linalg.norm(theta_old - theta_new) > thresh and counter < max_iter:
+            counter += 1
             if verbosity > 0:
                 start = time.time()
             theta_old = theta_new.copy()
-
+            idc = np.random.choice(len(self.data_params), size=int(len(self.data_params) * random_ratio))
             C_theta, inv_C_theta = BayesianParameterMap._calc_c(
-                self.data_params,
+                self.data_params[idc],
                 exponential_quadratic_kernel,
                 theta_old[:3],
                 1. / theta_old[3],
@@ -785,17 +802,17 @@ class BayesianParameterMap(ParameterMap):
             if self.num_cpus < 2:
                 sub_jac_theta1 = np.asarray(
                     [jac_eqk_theta_1(x_i, x_j, theta_old[1])
-                     for x_i in self.data_params for x_j in self.data_params]
-                ).reshape(self.data_params.shape[0], self.data_params.shape[0])
+                     for x_i in self.data_params[idc] for x_j in self.data_params[idc]]
+                ).reshape(len(idc), len(idc))
 
                 sub_jac_theta2 = np.asarray(
                     [jac_eqk_theta_2(x_i, x_j, *theta_old[:2])
-                     for x_i in self.data_params for x_j in self.data_params]
-                ).reshape(self.data_params.shape[0], self.data_params.shape[0])
+                     for x_i in self.data_params[idc] for x_j in self.data_params[idc]]
+                ).reshape(len(idc), len(idc))
 
                 sub_jac_theta3 = np.asarray(
-                    [jac_eqk_theta_3(x_i, x_j) for x_i in self.data_params for x_j in self.data_params]
-                ).reshape(self.data_params.shape[0], self.data_params.shape[0])
+                    [jac_eqk_theta_3(x_i, x_j) for x_i in self.data_params[idc] for x_j in self.data_params[idc]]
+                ).reshape(len(idc), len(idc))
 
             else:
                 num_cpus = np.minimum(multiprocessing.cpu_count() - 1, self.num_cpus)
@@ -804,8 +821,8 @@ class BayesianParameterMap(ParameterMap):
                         jac_eqk_theta_1,
                         ([*d, theta] for d, theta in
                          zip(
-                            product(self.data_params, self.data_params),
-                            repeat(theta_old[1], (self.data_params.shape[0] * self.data_params.shape[0]))
+                            product(self.data_params[idc], self.data_params[idc]),
+                            repeat(theta_old[1], (len(idc) * len(idc)))
                         ))
                     )
 
@@ -813,27 +830,27 @@ class BayesianParameterMap(ParameterMap):
                         jac_eqk_theta_2,
                         ([*d, *theta] for d, theta in
                          zip(
-                             product(self.data_params, self.data_params),
-                             repeat(theta_old[:2], (self.data_params.shape[0] * self.data_params.shape[0]))
+                             product(self.data_params[idc], self.data_params[idc]),
+                             repeat(theta_old[:2], (len(idc) * len(idc)))
                         ))
                     )
 
                     sub_jac_theta3 = parallel.starmap(
                         jac_eqk_theta_3,
-                        product(self.data_params, self.data_params)
+                        product(self.data_params[idc], self.data_params[idc])
                     )
 
                     sub_jac_theta1 = np.asarray(sub_jac_theta1).reshape(
-                        self.data_params.shape[0], self.data_params.shape[0])
+                        len(idc), len(idc))
                     sub_jac_theta2 = np.asarray(sub_jac_theta2).reshape(
-                        self.data_params.shape[0], self.data_params.shape[0])
+                        len(idc), len(idc))
                     sub_jac_theta3 = np.asarray(sub_jac_theta3).reshape(
-                        self.data_params.shape[0], self.data_params.shape[0])
-            sub_jac_precision = self._subjac_precision(self.data_params.shape[0], theta_old[3])
-            jact1 = self.jac(sub_jac_theta1, inv_C_theta)
-            jact2 = self.jac(sub_jac_theta2, inv_C_theta)
-            jact3 = self.jac(sub_jac_theta3, inv_C_theta)
-            jacp = self.jac(sub_jac_precision, inv_C_theta)
+                        len(idc), len(idc))
+            sub_jac_precision = self._subjac_precision(len(idc), theta_old[3])
+            jact1 = self.jac(sub_jac_theta1, inv_C_theta, self.bio_data[idc])
+            jact2 = self.jac(sub_jac_theta2, inv_C_theta, self.bio_data[idc])
+            jact3 = self.jac(sub_jac_theta3, inv_C_theta, self.bio_data[idc])
+            jacp = self.jac(sub_jac_precision, inv_C_theta, self.bio_data[idc])
             jac_theta = np.asarray([jact1, jact2, jact3, jacp])
             theta_new = np.maximum(theta_old + step_size * jac_theta, min_param)
 
@@ -844,16 +861,28 @@ class BayesianParameterMap(ParameterMap):
 
         return theta_new[:3], 1. / theta_new[3]
 
-    def _optimise_gaussian_param(self, step_size, thresh, scaling_init, noise_scaling_init, min_param, verbosity):
+    def _optimise_gaussian_param(
+            self,
+            step_size,
+            thresh,
+            scaling_init,
+            noise_scaling_init,
+            min_param,
+            verbosity,
+            random_ratio=.3,
+            max_iter=10000
+    ):
         sigma_sq_old = np.ones(2) * 999
         s = np.ones(2) * scaling_init
         s[-1] = noise_scaling_init
         sigma_sq_new = np.random.randn(2) + s
-        while np.linalg.norm(sigma_sq_old - sigma_sq_new) > thresh:
+        counter = 0
+        while np.linalg.norm(sigma_sq_old - sigma_sq_new) > thresh and counter < max_iter:
+            counter += 1
             sigma_sq_old = sigma_sq_new.copy()
-
+            idc = np.random.choice(len(self.data_params), size=int(len(self.data_params) * random_ratio))
             C_sigma, inv_C_sigma = BayesianParameterMap._calc_c(
-                self.data_params,
+                self.data_params[idc],
                 gaussian_kernel,
                 sigma_sq_old[0],
                 1. / sigma_sq_old[1],
@@ -862,9 +891,9 @@ class BayesianParameterMap(ParameterMap):
 
             sub_jac_sigma = np.asarray(
                 [jac_gaussian_kernel(x_i, x_j, sigma_sq_old[0])
-                 for x_i in self.data_params for x_j in self.data_params]
-            ).reshape(self.data_params.shape[0], self.data_params.shape[0])
-            sub_jac_precision = self._subjac_precision(self.data_params.shape[0], sigma_sq_old[1])
+                 for x_i in self.data_params[idc] for x_j in self.data_params[idc]]
+            ).reshape(len(idc), len(idc))
+            sub_jac_precision = self._subjac_precision(len(idc), sigma_sq_old[1])
             jac_sigma = self.jac(sub_jac_sigma, inv_C_sigma)
             jac_precision = self.jac(sub_jac_precision, inv_C_sigma)
             jac_param = np.asarray([jac_sigma, jac_precision])
