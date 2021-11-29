@@ -1,0 +1,23 @@
+Bootstrap: docker
+From: python:3.8.0b1-alpine3.9
+
+%files
+    requirements.txt
+
+%post
+    apk update
+    apk --no-cache add musl-dev linux-headers g++ git
+    python3.8 -m pip install --upgrade pip
+    python3.8 -m pip install Cython>=0.28.5
+    python3.8 -m pip install -r requirements.txt
+    python3.8 -m pip install -e git+https://git@github.com/leoTiez/seqDataHandler.git@v1.3.4#egg=seqDataHandler
+
+%labels
+    Author Leo Zeitler
+    Version v0.0.1
+
+%help
+    Container for JMAK model
+
+
+# For building the container run
