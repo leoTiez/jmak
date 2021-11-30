@@ -891,7 +891,8 @@ class BayesianParameterMap(ParameterMap):
                 1. / sigma_sq_old[1],
                 self.num_cpus
             )
-
+            if C_theta is None or inv_C_theta is None:
+                continue
             sub_jac_sigma = np.asarray(
                 [jac_gaussian_kernel(x_i, x_j, sigma_sq_old[0])
                  for x_i in self.data_params[idc] for x_j in self.data_params[idc]]
