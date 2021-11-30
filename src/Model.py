@@ -1,5 +1,6 @@
 import numpy as np
 import time
+import warnings
 import pandas as pd
 from itertools import product, repeat
 import statsmodels.api as smapi
@@ -13,7 +14,6 @@ from sklearn.decomposition import PCA
 
 import keras
 from tensorflow.keras import layers
-from tensorflow.keras.layers.experimental.preprocessing import Normalization
 import tensorflow as tf
 
 from src.Utils import validate_dir, frequency_bins
@@ -748,7 +748,15 @@ class BayesianParameterMap(ParameterMap):
                 parallel.join()
             C = np.asarray(result).reshape(data.shape[0], data.shape[0])
 
-        inv_C = np.linalg.pinv(C)
+        if np.any(np.isnan(C)):
+            warnings.warn('NaN values detected in Gramm matrix. Replace them by 0.')
+            C = np.nan_to_num(C, nan=0.)
+        try:
+            inv_C = np.linalg.pinv(C)
+        except np.linalg.LinAlgError:
+            warnings.warn('Could not create pseudo inverse. Return None.')
+            return None, None
+
         return C, inv_C
 
     @staticmethod
@@ -791,6 +799,9 @@ class BayesianParameterMap(ParameterMap):
                 1. / theta_old[3],
                 self.num_cpus
             )
+            if C_theta is None or inv_C_theta is None:
+                continue
+
             if self.num_cpus < 2:
                 sub_jac_theta1 = np.asarray(
                     [jac_eqk_theta_1(x_i, x_j, theta_old[1])
