@@ -38,10 +38,12 @@ def main(args):
         ntsc = np.loadtxt('%s/%s%s_Train NTS centre.csv' % (array_folder, save_prefix, i), delimiter=',')
         ntse = np.loadtxt('%s/%s%s_Train NTS end.csv' % (array_folder, save_prefix, i), delimiter=',')
 
-        intergen = np.loadtxt(
-            '%s/%s%s_Train intergenic regions.csv' % (array_folder, save_prefix, i),
-            delimiter=','
-        )
+        if 'size' not in title_biotype.lower():
+            intergen = np.loadtxt(
+                '%s/%s%s_Train intergenic regions.csv' % (array_folder, save_prefix, i),
+                delimiter=','
+            )
+            igr = np.append(igr, intergen)
 
         gene_s = np.append(gene_s, gs)
         gene_c = np.append(gene_c, gc)
@@ -49,7 +51,6 @@ def main(args):
         nts_s = np.append(nts_s, ntss)
         nts_c = np.append(nts_c, ntsc)
         nts_e = np.append(nts_e, ntse)
-        igr = np.append(igr, intergen)
 
     rand_gene_s = np.empty(0)
     rand_gene_c = np.empty(0)
@@ -73,10 +74,12 @@ def main(args):
         randnts_c = np.loadtxt('%s/%s_random%s_Train NTS centre.csv' % (array_folder, save_prefix, i), delimiter=',')
         randnts_e = np.loadtxt('%s/%s_random%s_Train NTS end.csv' % (array_folder, save_prefix, i), delimiter=',')
 
-        randigr = np.loadtxt(
-            '%s/%s_random%s_Train intergenic regions.csv' % (array_folder, save_prefix, i),
-            delimiter=','
-        )
+        if 'size' not in title_biotype.lower():
+            randigr = np.loadtxt(
+                '%s/%s_random%s_Train intergenic regions.csv' % (array_folder, save_prefix, i),
+                delimiter=','
+            )
+            rand_igr = np.append(rand_igr, randigr)
 
         rand_gene_s = np.append(rand_gene_s, randg_s)
         rand_gene_c = np.append(rand_gene_c, randg_c)
@@ -84,27 +87,46 @@ def main(args):
         rand_nts_s = np.append(rand_nts_s, randnts_s)
         rand_nts_c = np.append(rand_nts_c, randnts_c)
         rand_nts_e = np.append(rand_nts_e, randnts_e)
-        rand_igr = np.append(rand_igr, randigr)
 
     palette = sns.color_palette()
     custom_lines = [Line2D([0], [0], color=palette[0], lw=4),
                     Line2D([0], [0], color=palette[-2], lw=4)]
     plt.figure(figsize=(8, 7))
-    sns.violinplot(data=[
-        gene_s, rand_gene_s, gene_c, rand_gene_c, gene_e, rand_gene_e,
-        nts_s, rand_nts_s, nts_c, rand_nts_c, nts_e, rand_nts_e,
-        igr, rand_igr
-    ], palette=[
-        palette[0], palette[-2],
-        palette[0], palette[-2],
-        palette[0], palette[-2],
-        palette[0], palette[-2],
-        palette[0], palette[-2],
-        palette[0], palette[-2],
-        palette[0], palette[-2],
+    if 'size' not in title_biotype.lower():
+        data = [
+            gene_s, rand_gene_s, gene_c, rand_gene_c, gene_e, rand_gene_e,
+            nts_s, rand_nts_s, nts_c, rand_nts_c, nts_e, rand_nts_e,
+            igr, rand_igr
+        ]
+        palette = [
+            palette[0], palette[-2],
+            palette[0], palette[-2],
+            palette[0], palette[-2],
+            palette[0], palette[-2],
+            palette[0], palette[-2],
+            palette[0], palette[-2],
+            palette[0], palette[-2],
 
-    ])
-    plt.xticks([.5, 2.5, 4.5, 6.5, 8.5, 10.5, 12.5], ['Gene s', 'Gene c', 'Gene e', 'NTS s', 'NTS c', 'NTS e', 'IGR'])
+        ]
+        xticks = [.5, 2.5, 4.5, 6.5, 8.5, 10.5, 12.5]
+        xtick_handles = ['Gene s', 'Gene c', 'Gene e', 'NTS s', 'NTS c', 'NTS e', 'IGR']
+    else:
+        data = [
+            gene_s, rand_gene_s, gene_c, rand_gene_c, gene_e, rand_gene_e,
+            nts_s, rand_nts_s, nts_c, rand_nts_c, nts_e
+        ]
+        palette = [
+            palette[0], palette[-2],
+            palette[0], palette[-2],
+            palette[0], palette[-2],
+            palette[0], palette[-2],
+            palette[0], palette[-2],
+            palette[0], palette[-2],
+        ]
+        xticks = [.5, 2.5, 4.5, 6.5, 8.5, 10.5]
+        xtick_handles = ['Gene s', 'Gene c', 'Gene e', 'NTS s', 'NTS c', 'NTS e']
+    sns.violinplot(data=data, palette=palette)
+    plt.xticks(xticks, xtick_handles)
     plt.title('Error distribution %s' % title_biotype)
     plt.legend(custom_lines, ['Original', 'Random'])
 
