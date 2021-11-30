@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import pickle
 from tensorflow.keras.models import load_model
 
-from src.DataLoader import load_chrom_data, load_chrom_split, load_bio_data
+from src.DataLoader import load_chrom_data, load_chrom_split, load_bio_data, load_meres
 from src.UtilsMain import create_models, argparse_predict
 from src.Utils import validate_dir
 from src.Model import BayesianParameterMap, NNParameterMap, ParameterMap
@@ -18,8 +18,148 @@ NUCLEOSOME_INDEX = {
     '30min': 2
 }
 
+SLAM_INDEX = {
+    'nouv': 0,
+    '20min': 1,
+    '120min': 2
+}
+
+NUCL_PATHS = [
+    'data/seq/nucl_wt_nouv.bw',
+    'data/seq/nucl_wt_0min.bw',
+    'data/seq/nucl_wt_30min.bw'
+]
+
+SLAM_PATHS = [
+    'data/seq/nouv_slam_mins_new.bw',
+    'data/seq/nouv_slam_plus_new.bw',
+    'data/seq/20m_slam_mins_new.bw',
+    'data/seq/20m_slam_plus_new.bw',
+    'data/seq/120m_slam_mins_new.bw',
+    'data/seq/120m_slam_plus_new.bw'
+]
+
+
+def convert_bio_data(
+        bio_type,
+        bio_index,
+        train_transcriptome,
+        test_transcriptome,
+        train_start_igr,
+        train_end_igr,
+        test_start_igr,
+        test_end_igr
+):
+    train_trans, test_trans, train_igr, test_igr = None, None, None, None
+    if bio_type.lower() == 'nucl' or bio_type == 'slam':
+        bio_data_paths = NUCL_PATHS if bio_type.lower() == 'nucl' else SLAM_PATHS
+        use_directionality = False if bio_type.lower() == 'nucl' else True
+        idx = NUCLEOSOME_INDEX[bio_index] if bio_type.lower() == 'nucl' else SLAM_INDEX[bio_index]
+        train_trans, test_trans = load_bio_data(
+            zip(train_transcriptome['chr'].to_list(), train_transcriptome['start'].to_list()),
+            zip(train_transcriptome['chr'].to_list(), train_transcriptome['end'].to_list()),
+            zip(test_transcriptome['chr'].to_list(), test_transcriptome['start'].to_list()),
+            zip(test_transcriptome['chr'].to_list(), test_transcriptome['end'].to_list()),
+            bio_data_paths,
+            use_directionality=use_directionality
+        )
+        train_igr, test_igr = load_bio_data(
+            train_start_igr,
+            train_end_igr,
+            test_start_igr,
+            test_end_igr,
+            bio_data_paths,
+            use_directionality=use_directionality
+        )
+        train_trans, test_trans = train_trans[idx], test_trans[idx]
+        train_igr, test_igr = train_igr[idx], test_igr[idx]
+
+    elif bio_type.lower() == 'size':
+        train_trans = np.abs(train_transcriptome['start'].to_numpy('int') - train_transcriptome['end'].to_numpy('int'))
+        test_trans = np.abs(test_transcriptome['start'].to_numpy('int') - test_transcriptome['end'].to_numpy('int'))
+
+    elif bio_type.lower() == 'meres':
+        c_pos = load_meres('centromeres')
+        t_pos = load_meres('telomeres')
+        train_trans_diff_cen_tel = []
+        train_trans_chrom_compare = []
+        test_trans_diff_cen_tel = []
+        test_trans_chrom_compare = []
+        for row in c_pos.iterrows():
+            chrom = row[1]['chr']
+            centromere = row[1]['pos']
+            telomere = t_pos[t_pos['chr'] == chrom]['pos'].values[0]
+            train_trans_chrom = train_transcriptome[train_transcriptome['chr'] == chrom]
+            if len(train_trans_chrom) > 0:
+                centre = ((train_trans_chrom['start'] + train_trans_chrom['end']) / 2.).to_numpy('float')
+                train_trans_diff_cen_tel.extend(
+                    np.minimum(np.abs(centre - centromere), np.abs(centre - telomere))
+                )
+                train_trans_chrom_compare.extend([chrom] * len(train_trans_chrom.index))
+
+            test_trans_chrom = test_transcriptome[test_transcriptome['chr'] == chrom]
+            if len(test_trans_chrom) > 0:
+                centre = ((test_trans_chrom['start'] + test_trans_chrom['end']) / 2.).to_numpy('float')
+                test_trans_diff_cen_tel.extend(
+                    np.minimum(np.abs(centromere - centre), np.abs(telomere - centre))
+                )
+                test_trans_chrom_compare.extend([chrom] * len(test_trans_chrom.index))
+
+        train_trans = np.asarray(train_trans_diff_cen_tel)
+        test_trans = np.asarray(test_trans_diff_cen_tel)
+        if not np.all([x == y for x, y in zip(train_transcriptome['chr'].to_list(), train_trans_chrom_compare)]):
+            raise ValueError('Train chromosomes (transcript) did not match')
+        if not np.all([x == y for x, y in zip(test_transcriptome['chr'].to_list(), test_trans_chrom_compare)]):
+            raise ValueError('Test chromosomes (transcript) did not match')
+
+        train_igr_diff_cen_tel = []
+        train_igr_chrom_compare = []
+        test_igr_diff_cen_tel = []
+        test_igr_chrom_compare = []
+        for row in c_pos.iterrows():
+            chrom = row[1]['chr']
+            centromere = row[1]['pos']
+            telomere = t_pos[t_pos['chr'] == chrom]['pos'].values[0]
+
+            chrom_list = list(filter(lambda x: x[0] == chrom, train_start_igr))
+            if chrom_list:
+                train_chrom_igr, train_chrom_igr_start = zip(*chrom_list)
+                _, train_chrom_igr_end = zip(*filter(lambda x: x[0] == chrom, train_end_igr))
+                centre = (np.asarray(train_chrom_igr_start, dtype='float')
+                          + np.asarray(train_chrom_igr_end, dtype='float')) / 2.
+                train_igr_diff_cen_tel.extend(
+                    np.minimum(np.abs(centre - centromere), np.abs(centre - telomere))
+                )
+                train_igr_chrom_compare.extend(train_chrom_igr)
+
+            chrom_list = list(filter(lambda x: x[0] == chrom, test_start_igr))
+            if chrom_list:
+                test_chrom_igr, test_chrom_igr_start = zip(*chrom_list)
+                _, test_chrom_igr_end = zip(*filter(lambda x: x[0] == chrom, test_end_igr))
+                centre = (np.asarray(test_chrom_igr_start, dtype='float')
+                          + np.asarray(test_chrom_igr_end, dtype='float')) / 2.
+                test_igr_diff_cen_tel.extend(
+                    np.minimum(np.abs(centre - centromere), np.abs(centre - telomere))
+                )
+                test_igr_chrom_compare.extend(test_chrom_igr)
+
+        chr_train, _ = zip(*train_start_igr)
+        chr_test, _ = zip(*test_start_igr)
+        if not np.all([x == y for x, y in zip(chr_train, train_igr_chrom_compare)]):
+            raise ValueError('Train chromosomes (IGR) did not match')
+        if not np.all([x == y for x, y in zip(chr_test, test_igr_chrom_compare)]):
+            raise ValueError('Test chromosomes (IGR) did not match')
+        train_igr = np.asarray(train_igr_diff_cen_tel)
+        test_igr = np.asarray(test_igr_diff_cen_tel)
+    else:
+        raise ValueError('Unknown bio type.')
+
+    return train_trans, test_trans, train_igr, test_igr
+
 
 def main_nucl(args):
+    bio_type = args.bio_type
+    bio_index = args.bio_index
     ml_type = args.ml_type
     do_each = args.do_each
     save_fig = args.save_fig
@@ -47,14 +187,6 @@ def main_nucl(args):
     rm_percentile = args.rm_percentile
     neg_random = args.neg_random
 
-    nucl_index = NUCLEOSOME_INDEX['0min']
-
-    nucl_paths = [
-        'data/seq/nucl_wt_nouv.bw',
-        'data/seq/nucl_wt_0min.bw',
-        'data/seq/nucl_wt_30min.bw'
-    ]
-
     if verbosity > 0:
         print('Load CPD')
     train_chrom = load_chrom_split('train')
@@ -67,38 +199,36 @@ def main_nucl(args):
 
     if verbosity > 0:
         print('Load bio data')
-    train_nucl_trans, test_nucl_trans = load_bio_data(
-        zip(train_transcriptome['chr'].to_list(), train_transcriptome['start'].to_list()),
-        zip(train_transcriptome['chr'].to_list(), train_transcriptome['end'].to_list()),
-        zip(test_transcriptome['chr'].to_list(), test_transcriptome['start'].to_list()),
-        zip(test_transcriptome['chr'].to_list(), test_transcriptome['end'].to_list()),
-        nucl_paths,
-        use_directionality=False
-    )
-    train_nucl_igr, test_nucl_igr = load_bio_data(
+        print('Bio type: %s' % bio_type)
+
+    train_trans, test_trans, train_igr, test_igr = convert_bio_data(
+        bio_type,
+        bio_index,
+        train_transcriptome,
+        test_transcriptome,
         train_start_igr,
         train_end_igr,
         test_start_igr,
-        test_end_igr,
-        nucl_paths,
-        use_directionality=False
+        test_end_igr
     )
 
+    if bio_type.lower() == 'size':
+        trans_rmodels = list(filter(lambda x: 'gene' in x.name.lower() or 'nts' in x.name.lower(), region_model_list))
     train_data, test_data = [], []
     for rm in region_model_list:
         if 'gene' in rm.name.lower() or 'nts' in rm.name.lower():
-            train_nucl, test_nucl = train_nucl_trans[nucl_index], test_nucl_trans[nucl_index]
+            traind, testd = train_trans, test_trans
         else:
-            train_nucl, test_nucl = train_nucl_igr[nucl_index], test_nucl_igr[nucl_index]
+            traind, testd = train_igr, test_igr
 
         if neg_random:
-            np.random.shuffle(train_nucl)
-            np.random.shuffle(test_nucl)
+            np.random.shuffle(traind)
+            np.random.shuffle(testd)
 
         if 'test' in rm.name.lower():
-            test_data.append((rm, test_nucl))
+            test_data.append((rm, testd))
         else:
-            train_data.append((rm, train_nucl))
+            train_data.append((rm, traind))
 
     ml_models = []
     if verbosity > 0:
