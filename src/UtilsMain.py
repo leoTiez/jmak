@@ -188,7 +188,13 @@ def argparse_predict(arguments):
 
     parser.add_argument('--bio_type', type=str, required=True,
                         help='Pass the data type that is used in order to determine the function '
-                             'and to make predictions Possible are: slam | nucl | size | meres')
+                             'and to make predictions. Possible are: slam | nucl | size | meres')
+    parser.add_argument('--bio_index', type=str, default='',
+                        help='Several time points are available for SLAM and NUCL. Pass the time identifier'
+                             'with this key word. '
+                             'Possible are for NUCL: nouv | 0min | 30min .'
+                             'Possible are for SLAM: nouv | 20min | 120min . '
+                        )
     parser.add_argument('--ml_type', type=str, required=True,
                         help='Define the applied machine learning approach which is used to find the parameter map. '
                              'Possible are: nn | gp')
@@ -253,6 +259,27 @@ def argparse_predict(arguments):
                         help='Verbosity level.')
     parser.add_argument('--time_scale', type=int, default=140,
                         help='Time scale for which the repair dynamics are computed. Default is 140 minutes.')
+
+    parsed_args = parser.parse_args(arguments)
+    return parsed_args
+
+
+def argparse_errorplotter(arguments):
+    parser = argparse.ArgumentParser(
+        description='Load array files from different experiments and plot error in violin plots.'
+    )
+
+    parser.add_argument('--save_prefix', type=str, required=True,
+                        help='Save prefix that was used when array files where created. '
+                             'Used for string based matching.')
+    parser.add_argument('--array_dir', type=str, default='arrays',
+                        help='Directory where arrays are stored.')
+    parser.add_argument('--max_iter', type=int, default=15,
+                        help='Maximum number of experiments that are included.')
+    parser.add_argument('--title_biotype', type=str, default='',
+                        help='Set type of biological data that is used in the title of the plot.')
+    parser.add_argument('--save_fig', action='store_true', dest='save_fig',
+                        help='If set, created plot is saved to file instead of displayed.')
 
     parsed_args = parser.parse_args(arguments)
     return parsed_args
