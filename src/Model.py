@@ -6,7 +6,8 @@ from itertools import product, repeat
 import statsmodels.api as smapi
 import matplotlib.pyplot as plt
 import matplotlib.colors as cls
-from mpl_toolkits.axes_grid1 import make_axes_locatable
+from mpl_toolkits.axes_grid1 import make_axes_locatable, host_subplot
+import mpl_toolkits.axisartist as AA
 from abc import ABC
 import multiprocessing
 from sklearn.model_selection import train_test_split, KFold
@@ -466,6 +467,9 @@ class ParameterMap(ABC):
             self,
             rmodel,
             bio_data,
+            discretise_bio=True,
+            randomise=False,
+            num_bins=50,
             min_m=.4,
             max_m=4.5,
             min_mf=.4,
@@ -482,6 +486,7 @@ class ParameterMap(ABC):
         self.rmodel = rmodel
         self.map_bio = None
         self.learnt_var = 0
+        self.discretise_bio = discretise_bio
         self.val_frac = val_frac
         self.random_state = random_state
         m_shape = np.asarray(list(self.rmodel.get_model_parameter('m')))
@@ -498,12 +503,24 @@ class ParameterMap(ABC):
 
         param_mask = np.logical_and(m_shape_mask, np.logical_and(max_frac_mask, beta_mask))
         self.all_bio_data = bio_data[param_mask]
+        if self.discretise_bio:
+            self.bio_bins = frequency_bins(self.all_bio_data, num_bins)
+            self.all_bio_data = np.digitize(self.all_bio_data, self.bio_bins)
+        if randomise:
+            np.random.shuffle(self.all_bio_data)
+
         m_shape, self.m_mean, self.m_std = ParameterMap.normalise(m_shape[param_mask])
         max_frac, self.max_frac_mean, self.max_frac_std = ParameterMap.normalise(max_frac[param_mask])
         beta, self.beta_mean, self.beta_std = ParameterMap.normalise(beta[param_mask])
+
         self.all_data_params = np.asarray([m_shape, max_frac, beta]).T
         self.data_params, self.data_params_val, self.bio_data, self.bio_data_val = None, None, None, None
         self.reshuffle()
+
+        self.map_m = np.linspace(min_m, max_m, num_param_values)
+        self.map_max_frac = np.linspace(min_mf, max_mf, num_param_values)
+        self.map_beta = np.linspace(min_beta, max_beta, num_param_values)
+        self.map_m, self.map_max_frac, self.map_beta = np.meshgrid(self.map_m, self.map_max_frac, self.map_beta)
 
         self.map_m = np.linspace(min_m, max_m, num_param_values)
         self.map_max_frac = np.linspace(min_mf, max_mf, num_param_values)
@@ -538,12 +555,14 @@ class ParameterMap(ABC):
         return data, mean, std
 
     @staticmethod
-    def error(time_sample, real_data, est_mean, est_var):
-        # compute the mean squared prediction error
+    def error(time_sample, real_data, est_mean, est_var=None):
         time_sample = np.asarray(time_sample)
-        mask = time_sample > 0
-        s = np.sum((np.asarray(est_mean) - np.asarray(real_data))**2)
-        return (s + np.sum(est_var)) / float(len(real_data))
+        s = (np.asarray(est_mean) * 100 - np.asarray(real_data) * 100)**2
+        if est_var is None:
+            return np.mean(s)
+        else:
+            s = np.sum(s)
+            return (s + np.sum(est_var)) / float(len(real_data))
 
     def plot_parameter_map(
             self,
@@ -565,8 +584,12 @@ class ParameterMap(ABC):
         params_val_pca = pca.transform(self.data_params_val).T
 
         plt.figure(figsize=figsize)
-        map_contour = plt.tricontourf(*map_param_pca, self.map_bio, levels, cmap='seismic', alpha=.7)
-        plt.tricontour(*map_param_pca, self.map_bio, levels, linewidths=0.5, colors='k')
+        if self.discretise_bio:
+            map_bio = np.argmax(self.map_bio, axis=1)
+        else:
+            map_bio = self.map_bio
+        map_contour = plt.tricontourf(*map_param_pca, map_bio, levels, cmap='seismic', alpha=.7)
+        plt.tricontour(*map_param_pca, map_bio, levels, linewidths=0.5, colors='k')
 
         size = np.minimum(plotted_dp, len(self.bio_data_val))
         idx = np.random.choice(len(self.bio_data_val), size=size, replace=False)
@@ -575,7 +598,7 @@ class ParameterMap(ABC):
             c=self.bio_data_val[idx],
             cmap='seismic',
             edgecolor='white',
-            norm=cls.Normalize(vmin=np.min(self.map_bio), vmax=np.max(self.map_bio))
+            norm=cls.Normalize(vmin=np.min(map_bio), vmax=np.max(map_bio))
         )
 
         plt.title('Learnt parameter map: %s' % self.rmodel.name)
@@ -608,23 +631,32 @@ class ParameterMap(ABC):
     ):
         pass
 
-    def estimate(self, new_bio, max_nclose=500, time_scale=140):
+    def estimate(self, new_bio, time_scale=140, discretise_nb=True):
         est_m_list, est_max_frac_list, est_beta_list, prediction = [], [], [], []
         for nb in new_bio:
-            distances = np.abs(self.map_bio - nb)
-            distances_in_var = distances - np.sqrt(self.learnt_var)
-            k = np.minimum(len(distances_in_var) - 1, max_nclose)
-            mask = distances_in_var <= 0
-            mask_k = np.zeros(len(distances_in_var), dtype='bool')
-            mask_k[np.argpartition(distances_in_var, k)[:k]] = True
-            mask = np.logical_and(mask, mask_k)
-            if not np.any(mask):
-                mask[np.argpartition(distances_in_var, k)[:k]] = True
+            if self.discretise_bio:
+                if discretise_nb:
+                    nb_class = np.digitize(nb, self.bio_bins)
+                else:
+                    nb_class = nb
+                idc = np.where(self.map_bio[:, nb_class] > 1. / self.map_bio.shape[1])[0]
+                mask = np.zeros(self.map_bio.shape[0], dtype='bool')
+                mask[idc] = True
+                weights = self.map_bio[:, nb_class][idc] / np.sum(self.map_bio[:, nb_class][idc])
+            else:
+                distances = np.abs(self.map_bio - nb)
+                mask = distances < np.sqrt(self.learnt_var)
+                weights = 1 - (distances / np.sqrt(self.learnt_var))[mask]
+                weights /= np.sum(weights)
+
             est_m, est_max_frac, est_beta = (
                 self.map_m.reshape(-1)[mask],
                 self.map_max_frac.reshape(-1)[mask],
                 self.map_beta.reshape(-1)[mask]
             )
+            est_m = est_m.dot(weights)
+            est_max_frac = est_max_frac.dot(weights)
+            est_beta = est_beta.dot(weights)
 
             est_m_list.append(est_m)
             est_max_frac_list.append(est_max_frac)
@@ -638,6 +670,7 @@ class ParameterMap(ABC):
                 name='Temp'
             )
             prediction.append(tp_model.repair_fraction_over_time(time_scale).T)
+            # prediction.append(tp_model.repair_fraction_over_time(time_scale).dot(weights))
 
         return prediction, est_m_list, est_max_frac_list, est_beta_list
 
@@ -648,6 +681,9 @@ class BayesianParameterMap(ParameterMap):
             rmodel,
             bio_data,
             kernel_func_type,
+            discretise_bio=True,
+            randomise=False,
+            num_bins=50,
             kernel_search_step=5e-4,
             kernel_search_thresh=1e-3,
             kernel_search_verbosity=0,
@@ -671,10 +707,14 @@ class BayesianParameterMap(ParameterMap):
     ):
         if len(rmodel.models) == 1:
             raise ValueError('The region model must contain at least two JMAK models.')
-
+        if discretise_bio:
+            raise ValueError('The Gaussian implementation does not allow a classification. Use the kNN model instead.')
         super().__init__(
             rmodel,
             bio_data,
+            discretise_bio=discretise_bio,
+            num_bins=num_bins,
+            randomise=randomise,
             min_m=min_m,
             max_m=max_m,
             min_mf=min_mf,
@@ -784,7 +824,7 @@ class BayesianParameterMap(ParameterMap):
         theta_old = np.ones(4) * 999
         s = np.ones(4) * scaling_init
         s[-1] = noise_scaling_init
-        theta_new = np.random.random(4) + s
+        theta_new = np.random.randn(4) + s
         counter = 0
         while np.linalg.norm(theta_old - theta_new) > thresh and counter < max_iter:
             counter += 1
@@ -800,6 +840,7 @@ class BayesianParameterMap(ParameterMap):
                 self.num_cpus
             )
             if C_theta is None or inv_C_theta is None:
+                theta_old = np.ones(4) * 999
                 continue
 
             if self.num_cpus < 2:
@@ -891,7 +932,7 @@ class BayesianParameterMap(ParameterMap):
                 1. / sigma_sq_old[1],
                 self.num_cpus
             )
-            if C_theta is None or inv_C_theta is None:
+            if C_sigma is None or inv_C_sigma is None:
                 continue
             sub_jac_sigma = np.asarray(
                 [jac_gaussian_kernel(x_i, x_j, sigma_sq_old[0])
@@ -968,7 +1009,7 @@ class BayesianParameterMap(ParameterMap):
             beta = beta * self.beta_std + self.beta_mean
             best_estimation = JMAK(None, None, m=m, max_frac=mf, beta=beta
                                    ).repair_fraction_over_time(to_time=estimate_time)
-            error = self.error(np.arange(estimate_time), best_estimation, np.mean(p, axis=0), np.var(p, axis=0))
+            error = self.error(np.arange(estimate_time), best_estimation, p, None)
             val_error.append(error)
         if verbosity > 0:
             print('Model: %s\tAverage validation error: %.2f' % (self.rmodel.name, np.mean(val_error)))
@@ -991,6 +1032,9 @@ class NNParameterMap(ParameterMap):
             self,
             rmodel,
             bio_data,
+            discretise_bio=True,
+            num_bins=50,
+            randomise=False,
             layer_sizes=[64, 32, 8],
             step_size=1e-3,
             num_epocs=200,
@@ -1013,6 +1057,9 @@ class NNParameterMap(ParameterMap):
         super().__init__(
             rmodel,
             bio_data,
+            discretise_bio=discretise_bio,
+            randomise=randomise,
+            num_bins=num_bins,
             min_m=min_m,
             max_m=max_m,
             min_mf=min_mf,
@@ -1027,6 +1074,10 @@ class NNParameterMap(ParameterMap):
 
         tf.config.threading.set_intra_op_parallelism_threads(num_cpus)
         tf.config.threading.set_inter_op_parallelism_threads(num_cpus)
+        if self.discretise_bio:
+            # Allow for one greater as largest class in bio data as this allows to account for everything that is
+            # larger than so far seen data
+            self.bio_data = tf.one_hot(self.bio_data, depth=int(np.max(self.all_bio_data)) + 1).numpy()
         self.num_epochs = num_epocs
         self.layer_sizes = layer_sizes
         self.step_size = step_size
@@ -1034,18 +1085,23 @@ class NNParameterMap(ParameterMap):
         self.nn = None
 
     @staticmethod
-    def _build_nn(input_data, layer_sizes, step_size):
-        normaliser = layers.Normalization(input_shape=(3, ), axis=None)
-        normaliser.adapt(input_data)
-        dense_layers = [layers.Dense(ls, activation='relu') for ls in layer_sizes]
-        layer_list = [normaliser]
-        layer_list.extend(dense_layers)
-        layer_list.append(layers.Dense(1, activation='relu'))
+    def _build_nn(input_data, layer_sizes, step_size, num_output_neurons=1, do_classify=False):
+        layer_list = []
+        for num, ls in enumerate(layer_sizes):
+            layer_list.append(layers.Dense(ls, activation='relu'))
+            if num == 0:
+                layer_list.append(layers.Dropout(.7))
+            elif num == len(layer_sizes) - 1:
+                layer_list.append(layers.Dropout(.5))
+        if do_classify:
+            layer_list.append(layers.Dense(num_output_neurons, activation='relu'))
+        else:
+            layer_list.append(layers.Dense(num_output_neurons, activation='relu'))
 
         nn = keras.Sequential(layer_list)
         nn.compile(
-            loss='mean_squared_error',
-            optimizer=tf.keras.optimizers.Adam(step_size),
+            loss='mean_squared_error' if not do_classify else tf.keras.losses.CategoricalCrossentropy(from_logits=True),
+            optimizer=tf.keras.optimizers.Adagrad(step_size),
             metrics=['accuracy', 'mean_squared_error']
         )
         return nn
@@ -1053,57 +1109,114 @@ class NNParameterMap(ParameterMap):
     def _train_nn(self, batch_size=30, figsize=(8, 7), verbosity=0, save_fig=True, save_prefix=''):
         kfold = KFold(n_splits=self.k_fold, shuffle=True)
 
-        acc = []
-        loss = []
-        hist = np.zeros((self.k_fold, self.num_epochs))
+        hist_loss = np.zeros((self.k_fold, self.num_epochs))
+        hist_loss_val = np.zeros((self.k_fold, self.num_epochs))
+        hist_acc = np.zeros((self.k_fold, self.num_epochs))
+        hist_acc_val = np.zeros((self.k_fold, self.num_epochs))
         nn_list = []
         for num, (train_t, test_t) in enumerate(kfold.split(self.data_params, self.bio_data)):
             if verbosity > 0:
                 print('Fold number %s' % (num + 1))
-            nn = self._build_nn(self.data_params, self.layer_sizes, self.step_size)
+            nn = self._build_nn(
+                self.data_params,
+                self.layer_sizes,
+                self.step_size,
+                num_output_neurons=1 if not self.discretise_bio else self.bio_data.shape[1],
+                do_classify=self.discretise_bio
+            )
             nn_list.append(nn)
+
             h = nn.fit(
                 self.data_params[train_t],
                 self.bio_data[train_t],
+                validation_data=(
+                    self.data_params[test_t],
+                    self.bio_data[test_t].reshape(-1, 1) if not self.discretise_bio else self.bio_data[test_t]
+                ),
                 epochs=self.num_epochs,
                 batch_size=batch_size,
-                verbose=0
+                verbose=0 if verbosity < 2 else 1
             )
 
-            hist[num] = np.asarray(h.history['mean_squared_error'])
-            scores = nn.evaluate(
-                self.data_params[test_t],
-                self.bio_data[test_t].reshape(-1, 1),
-                batch_size=batch_size,
-                verbose=verbosity
-            )
-            loss.append(scores[0])
+            if self.discretise_bio:
+                hist_acc[num] = np.asarray(h.history['accuracy'])
+                hist_acc_val[num] = np.asarray(h.history['val_accuracy'])
+            hist_loss[num] = np.asarray(h.history['loss'])
+            hist_loss_val[num] = np.asarray(h.history['val_loss'])
 
-        loss = np.asarray(loss)
-        self.nn = nn_list[np.random.choice(len(loss))]
-        if verbosity > 0:
-            print('Loss: %s (+- %s)' % (np.mean(loss), np.std(loss)))
-            if verbosity > 1:
-                plt.figure(figsize=figsize)
-                plt.plot(np.mean(hist, axis=0), color='tab:blue')
-                plt.fill_between(
+        self.nn = nn_list[np.random.choice(self.k_fold)]
+        if self.discretise_bio:
+            self.nn = tf.keras.Sequential([self.nn, layers.Softmax()])
+        if verbosity > 1:
+            fig = plt.figure(figsize=figsize)
+            host = host_subplot(111, axes_class=AA.Axes, figure=fig)
+
+            host.plot(
+                np.arange(self.num_epochs),
+                np.mean(hist_loss, axis=0),
+                color='tab:blue',
+                label='MSE' if not self.discretise_bio else 'Categorical CE'
+            )
+            host.fill_between(
+                np.arange(self.num_epochs),
+                np.mean(hist_loss, axis=0) - np.var(hist_loss, axis=0),
+                np.mean(hist_loss, axis=0) + np.var(hist_loss, axis=0),
+                color='tab:blue',
+                alpha=.2
+            )
+
+            host.plot(
+                np.arange(self.num_epochs),
+                np.mean(hist_loss_val, axis=0),
+                color='cyan',
+                label='Val MSE' if not self.discretise_bio else 'Val Categorical CE'
+            )
+            host.fill_between(
+                np.arange(self.num_epochs),
+                np.mean(hist_loss_val, axis=0) - np.var(hist_loss_val, axis=0),
+                np.mean(hist_loss_val, axis=0) + np.var(hist_loss_val, axis=0),
+                color='cyan',
+                alpha=.2
+            )
+
+            if self.discretise_bio:
+                par1 = host.twinx()
+                par1.axis['right'].toggle(all=True)
+                par1.set_ylabel('Accuracy')
+                par1.set_ylim((0., 1.))
+                par1.plot(np.arange(self.num_epochs), np.mean(hist_acc, axis=0), color='tab:orange', label='Accuracy')
+                par1.fill_between(
                     np.arange(self.num_epochs),
-                    np.mean(hist, axis=0) - np.var(hist, axis=0),
-                    np.mean(hist, axis=0) + np.var(hist, axis=0),
-                    color='tab:blue',
+                    np.mean(hist_acc, axis=0) - np.var(hist_acc, axis=0),
+                    np.mean(hist_acc, axis=0) + np.var(hist_acc, axis=0),
+                    color='tab:orange',
                     alpha=.2
                 )
-                plt.title('Learning process: %s' % self.rmodel.name)
-                plt.ylabel('Mean squared error')
-                plt.xlabel('Epoch')
-                if save_fig:
-                    directory = validate_dir('figures/predict_models')
-                    plt.savefig('%s/%s_%s_nn_learning.png' % (directory, save_prefix, self.rmodel.name))
-                    plt.close('all')
-                else:
-                    plt.show()
+                par1.plot(
+                    np.arange(self.num_epochs),
+                    np.mean(hist_acc_val, axis=0),
+                    color='darkgoldenrod',
+                    label='Val Accuracy'
+                )
+                par1.fill_between(
+                    np.arange(self.num_epochs),
+                    np.mean(hist_acc_val, axis=0) - np.var(hist_acc_val, axis=0),
+                    np.mean(hist_acc_val, axis=0) + np.var(hist_acc_val, axis=0),
+                    color='darkgoldenrod',
+                    alpha=.2
+                )
 
-        return np.mean(loss) + np.std(loss)
+            host.set_title('Learning process: %s' % self.rmodel.name)
+            host.set_ylabel('Mean squared error' if not self.discretise_bio else 'Categorical CE')
+            host.set_xlabel('Epoch')
+            host.set_xlim((0, self.num_epochs))
+            host.legend(loc='right')
+            if save_fig:
+                directory = validate_dir('figures/predict_models')
+                plt.savefig('%s/%s_%s_nn_learning.png' % (directory, save_prefix, self.rmodel.name))
+                plt.close('all')
+            else:
+                plt.show()
 
     def learn(
             self,
@@ -1119,7 +1232,8 @@ class NNParameterMap(ParameterMap):
         # Use only single variance value
         if verbosity > 0:
             print('Train NN')
-        self.learnt_var = self._train_nn(
+        self.learnt_var = None
+        self._train_nn(
             batch_size=batch_size,
             figsize=figsize, 
             verbosity=verbosity,
@@ -1128,11 +1242,13 @@ class NNParameterMap(ParameterMap):
         )
         if verbosity > 0:
             print('Predict parameter map')
-        self.map_bio = self.nn.predict(self.map_param, batch_size=batch_size).reshape(-1)
 
+        self.map_bio = self.nn.predict(self.map_param, batch_size=batch_size)
+        if not self.discretise_bio:
+            self.map_bio = self.map_bio.reshape(-1)
         if verbosity > 0:
             print('Validate learnt parameter map')
-        predictions, _, _, _ = self.estimate(new_bio=self.bio_data_val, time_scale=estimate_time)
+        predictions, _, _, _ = self.estimate(new_bio=self.bio_data_val, time_scale=estimate_time, discretise_nb=False)
         val_error = []
         for (m, mf, beta), p in zip(self.data_params_val, predictions):
             m = m * self.m_std + self.m_mean
@@ -1140,7 +1256,8 @@ class NNParameterMap(ParameterMap):
             beta = beta * self.beta_std + self.beta_mean
             best_estimation = JMAK(None, None, m=m, max_frac=mf, beta=beta
                                    ).repair_fraction_over_time(to_time=estimate_time)
-            error = self.error(np.arange(estimate_time), best_estimation, np.mean(p, axis=0), np.var(p, axis=0))
+
+            error = self.error(np.arange(estimate_time), best_estimation, p, None)
             val_error.append(error)
         if verbosity > 0:
             print('Model: %s\tAverage validation error: %.2f' % (self.rmodel.name, np.mean(val_error)))
