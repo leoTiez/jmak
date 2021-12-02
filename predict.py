@@ -186,6 +186,9 @@ def main_nucl(args):
     load_if_exist = args.load_if_exist
     rm_percentile = args.rm_percentile
     neg_random = args.neg_random
+    discretise_bio = args.classify
+    num_classes = args.num_classes
+    layer_sizes = [256]
 
     if verbosity > 0:
         print('Load CPD')
@@ -213,17 +216,13 @@ def main_nucl(args):
     )
 
     if bio_type.lower() == 'size':
-        trans_rmodels = list(filter(lambda x: 'gene' in x.name.lower() or 'nts' in x.name.lower(), region_model_list))
+        region_model_list = list(filter(lambda x: 'gene' in x.name.lower() or 'nts' in x.name.lower(), region_model_list))
     train_data, test_data = [], []
     for rm in region_model_list:
         if 'gene' in rm.name.lower() or 'nts' in rm.name.lower():
             traind, testd = train_trans, test_trans
         else:
             traind, testd = train_igr, test_igr
-
-        if neg_random:
-            np.random.shuffle(traind)
-            np.random.shuffle(testd)
 
         if 'test' in rm.name.lower():
             test_data.append((rm, testd))
@@ -241,6 +240,7 @@ def main_nucl(args):
         mask = ~np.isnan(temp_m)
         mask = np.logical_and(temp_m < 6., mask)
         mask = np.logical_and(temp_beta < .5, mask)
+
         rm.models = [model for num, model in enumerate(rm.models) if mask[num]]
         if load_if_exist:
             mfile_name = ''
@@ -276,6 +276,9 @@ def main_nucl(args):
             b_model = BayesianParameterMap(
                 rm,
                 bio_data=train_nucl[mask],
+                discretise_bio=discretise_bio,
+                num_bins=num_classes,
+                randomise=neg_random,
                 kernel_func_type=kernel_func_type,
                 kernel_scaling_init=kernel_scaling_init,
                 kernel_search_verbosity=kernel_search_verbosity,
@@ -294,6 +297,10 @@ def main_nucl(args):
             b_model = NNParameterMap(
                 rm,
                 bio_data=train_nucl[mask],
+                discretise_bio=discretise_bio,
+                num_bins=num_classes,
+                layer_sizes=layer_sizes,
+                randomise=neg_random,
                 step_size=step_size,
                 num_epocs=num_epochs,
                 k_fold=k_fold,
@@ -346,6 +353,7 @@ def main_nucl(args):
 
     if verbosity > 0:
         print('Predict')
+
     for num, (ml, (rm, test_nucl)) in enumerate(zip(ml_models, test_data)):
         if verbosity > 1:
             print('Predict model %s' % rm.name)
@@ -360,7 +368,7 @@ def main_nucl(args):
 
         fig, ax = plt.subplots(3, 1, figsize=(8, 7))
         ax[0].hist(
-            [k for x in est_m_list for k in x],
+            est_m_list,
             bins='auto',
             histtype='step',
             color='magenta',
@@ -380,7 +388,7 @@ def main_nucl(args):
         ax[0].set_title('m')
 
         ax[1].hist(
-            [k for x in est_max_frac_list for k in x],
+            est_max_frac_list,
             bins='auto',
             histtype='step',
             color='deepskyblue',
@@ -400,7 +408,7 @@ def main_nucl(args):
         ax[1].set_title('Maximum fraction')
 
         ax[2].hist(
-            [k for x in est_beta_list for k in x],
+            est_beta_list,
             bins='auto',
             histtype='step',
             color='lime',
@@ -437,25 +445,18 @@ def main_nucl(args):
             error = ParameterMap.error(
                 np.arange(time_scale),
                 real_data=true_repair,
-                est_mean=np.mean(pred, axis=0),
-                est_var=np.var(pred, axis=0)
+                est_mean=pred,
+                est_var=None
             )
             pred_error_list.append(error)
-            if verbosity > 1:
+            if verbosity > 3:
                 plt.figure(figsize=(8, 7))
-                plt.plot(np.arange(time_scale), true_repair, color='red', label='True')
-                plt.plot(np.arange(time_scale), np.mean(pred, axis=0), color='blue', label='Prediction')
-                plt.fill_between(
-                    np.arange(time_scale),
-                    np.mean(pred, axis=0) - np.var(pred, axis=0),
-                    np.mean(pred, axis=0) + np.var(pred, axis=0),
-                    alpha=.2,
-                    color='blue'
-                )
+                plt.plot(np.arange(time_scale), true_repair, color='cyan', label='True')
+                plt.plot(np.arange(time_scale), pred, color='blue', label='Prediction')
                 plt.scatter(
                     jmak_model.time_points.reshape(-1),
                     jmak_model.data_points.reshape(-1),
-                    color='blue',
+                    color='cyan',
                     label='Data'
                 )
                 plt.legend(loc='lower right')
@@ -473,7 +474,7 @@ def main_nucl(args):
             directory = validate_dir('arrays')
             np.savetxt('%s/%s_%s.csv' % (directory, save_prefix, ml.rmodel.name), np.asarray(pred_error_list), delimiter=',')
         plt.figure(figsize=(8, 7))
-        plt.hist(pred_error_list, bins=hist_bins)
+        plt.hist(pred_error_list, bins='auto')
         plt.title('Validation error histogram: %s\nMean error: %.2f' % (ml.rmodel.name, np.mean(pred_error_list)))
         if save_fig:
             directory = validate_dir('figures/predict_models')
