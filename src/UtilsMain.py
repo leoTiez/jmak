@@ -207,7 +207,7 @@ def argparse_predict(arguments):
     parser.add_argument('--num_epochs', type=int, default=200,
                         help='Number of epochs used for the nn algorithm for learning the function params -> bio. '
                              'If gp is used, this parameter is ignored.')
-    parser.add_argument('-k_fold', type=int, default=5,
+    parser.add_argument('--k_fold', type=int, default=5,
                         help='Number of k-fold iterations for assessing the quality and variability of the nn mapping.'
                              'If gp is used, this parameter is ignored.')
     parser.add_argument('--do_each', action='store_true', dest='do_each',
@@ -259,6 +259,12 @@ def argparse_predict(arguments):
                         help='Verbosity level.')
     parser.add_argument('--time_scale', type=int, default=140,
                         help='Time scale for which the repair dynamics are computed. Default is 140 minutes.')
+    parser.add_argument('--classify', action='store_true', dest='classify',
+                        help='If set, prediction is treated as classification problem, '
+                             'rather than a regression problem'
+                        )
+    parser.add_argument('--num_classes', type=int, default=10,
+                        help='Determines the number of created classes if --classify flag is set.')
 
     parsed_args = parser.parse_args(arguments)
     return parsed_args
