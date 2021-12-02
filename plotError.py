@@ -169,7 +169,7 @@ def main(args):
         else:
             data = [
                 gene_s, rand_gene_s, gene_c, rand_gene_c, gene_e, rand_gene_e,
-                nts_s, rand_nts_s, nts_c, rand_nts_c, nts_e
+                nts_s, rand_nts_s, nts_c, rand_nts_c, nts_e, rand_nts_e
             ]
             palette = [
                 palette[0], palette[-2],
