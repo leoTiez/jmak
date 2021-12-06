@@ -1,15 +1,16 @@
 #!/usr/bin/env python3
 import sys
 import os
+import warnings
+
 import numpy as np
 import matplotlib.pyplot as plt
 import pickle
-from tensorflow.keras.models import load_model
 
 from src.DataLoader import load_chrom_data, load_chrom_split, load_bio_data, load_meres
 from src.UtilsMain import create_models, argparse_predict
 from src.Utils import validate_dir
-from src.Model import BayesianParameterMap, NNParameterMap, ParameterMap
+from src.PredictionModels import GPParameterMap, KNNParameterMap, LinearParameterMap
 
 
 NUCLEOSOME_INDEX = {
@@ -165,30 +166,14 @@ def main_nucl(args):
     save_fig = args.save_fig
     save_prefix = args.save_prefix
     to_pickle = args.to_pickle
-    kernel_func_type = args.kernel_func_type
-    kernel_search_verbosity = args.kernel_search_verbosity
-    kernel_scaling_init = args.kernel_scaling_init
-    noise_scaling_init = args.noise_scaling_init
-    min_m = args.min_m
-    max_m = args.max_m
-    min_mf = args.min_mf
-    min_beta = args.min_beta
-    max_beta = args.max_beta
-    num_param_values = args.num_param_values
     num_cpus = args.num_cpus
-    hist_bins = args.hist_bins
     verbosity = args.verbosity
-    time_scale = args.time_scale
-    step_size = args.step_size
-    num_epochs = args.num_epochs
-    k_fold = args.k_fold
     plotted_dp = args.plotted_dp
     load_if_exist = args.load_if_exist
     rm_percentile = args.rm_percentile
     neg_random = args.neg_random
-    discretise_bio = args.classify
     num_classes = args.num_classes
-    layer_sizes = [256]
+    k_neighbours = args.kneighbors
 
     if verbosity > 0:
         print('Load CPD')
@@ -232,7 +217,9 @@ def main_nucl(args):
     ml_models = []
     if verbosity > 0:
         print('Learn models')
-    for rm, train_nucl in train_data:
+        if neg_random:
+            print('Randomise model')
+    for rm, traind in [train_data[1]]:  # TODO
         if verbosity > 0:
             print('Create parameter mapping for model %s' % rm.name)
         temp_m = np.asarray(list(rm.get_model_parameter('m', do_filter=False)))
@@ -246,100 +233,54 @@ def main_nucl(args):
             mfile_name = ''
             path = '%s/models' % os.getcwd()
             mfile_name = '%s/%s_%s_pickle_file_%s.pkl' % (path, save_prefix, rm.name, ml_type)
-            if ml_type.lower() == 'nn':
-                nnfile_name = '%s/%s_%s_keras_file_%s.h5' % (path, save_prefix, rm.name, ml_type)
-            else:
-                raise ValueError('ML type not understood.')
-
             if os.path.isfile(mfile_name):
                 if verbosity > 0:
                     print('Found model file. Load model.')
                 b_model = pickle.load(open(mfile_name, 'rb'))
-                if ml_type.lower() == 'nn':
-                    if os.path.isfile(nnfile_name):
-                        b_model.nn = load_model(nnfile_name)
-                        ml_models.append(b_model)
-                        continue
-                    else:
-                        if verbosity > 0:
-                            print('Could not find nn file. Create new ml object.')
-                        b_model = None
-                else:
-                    ml_models.append(b_model)
-                    continue
+                ml_models.append(b_model)
             else:
                 if verbosity > 0:
                     print('Could not find existing ml file. Create new ml object.')
         if verbosity > 1:
             print('Init model')
         if ml_type.lower() == 'gp':
-            b_model = BayesianParameterMap(
+            b_model = GPParameterMap(
                 rm,
-                bio_data=train_nucl[mask],
-                discretise_bio=discretise_bio,
+                bio_data=traind[mask],
                 num_bins=num_classes,
                 randomise=neg_random,
-                kernel_func_type=kernel_func_type,
-                kernel_scaling_init=kernel_scaling_init,
-                kernel_search_verbosity=kernel_search_verbosity,
-                noise_scaling_init=noise_scaling_init,
-                kernel_search_step=step_size,
-                min_m=min_m,
-                max_m=max_m,
-                min_mf=min_mf,
-                min_beta=min_beta,
-                max_beta=max_beta,
-                num_param_values=num_param_values,
-                rm_percentile=rm_percentile,
-                num_cpus=num_cpus,
+                rm_percentile=rm_percentile
             )
-        elif ml_type == 'nn':
-            b_model = NNParameterMap(
+        elif ml_type == 'lin':
+            b_model = LinearParameterMap(
                 rm,
-                bio_data=train_nucl[mask],
-                discretise_bio=discretise_bio,
+                bio_data=traind[mask],
                 num_bins=num_classes,
-                layer_sizes=layer_sizes,
                 randomise=neg_random,
-                step_size=step_size,
-                num_epocs=num_epochs,
-                k_fold=k_fold,
-                min_m=min_m,
-                max_m=max_m,
-                min_mf=min_mf,
-                min_beta=min_beta,
-                max_beta=max_beta,
-                num_cpus=num_cpus,
                 rm_percentile=rm_percentile,
-                num_param_values=num_param_values
+            )
+        elif ml_type.lower() == 'knn':
+            b_model = KNNParameterMap(
+                rm,
+                traind[mask],
+                k_neighbours=k_neighbours,
+                randomise=neg_random,
+                num_cpus=num_cpus,
+                num_bins=num_classes
             )
         else:
             raise ValueError('ML type not understood.')
 
         if verbosity > 1:
             print('Train model')
-        b_model.learn(
-            num_cpus=num_cpus,
-            verbosity=verbosity,
-            hist_bins=hist_bins,
-            save_fig=save_fig,
-            save_prefix=save_prefix,
-            estimate_time=time_scale
-        )
+        b_model.learn(verbosity=verbosity)
         if to_pickle:
             if verbosity > 1:
                 print('Save model to file')
             path = validate_dir('models')
-            if ml_type.lower() == 'nn':
-                # Save nn separately as it cannot be pickled.
-                b_model.nn.save('%s/%s_%s_keras_file_%s.h5' % (path, save_prefix, rm.name, ml_type))
-                b_model.nn = None
-
             pfile = open('%s/%s_%s_pickle_file_%s.pkl' % (path, save_prefix, rm.name, ml_type), 'wb')
             pickle.dump(b_model, file=pfile)
             pfile.close()
-            if ml_type.lower() == 'nn':
-                b_model.nn = load_model('%s/%s_%s_keras_file_%s.h5' % (path, save_prefix, rm.name, ml_type))
 
         if verbosity > 1:
             print('Plot parameter map')
@@ -349,139 +290,51 @@ def main_nucl(args):
             save_prefix=save_prefix,
             plotted_dp=plotted_dp
         )
+
+        mean, var = b_model.estimate(b_model.data_params, convert_dp=False)
+        b_model.plot_error(
+            mean,
+            b_model.bio_data,
+            var,
+            b_model.data_params,
+            convert_params=False,
+            convert_val=False,
+            save_fig=save_fig,
+            save_prefix=save_prefix
+        )
         ml_models.append(b_model)
 
     if verbosity > 0:
         print('Predict')
 
-    for num, (ml, (rm, test_nucl)) in enumerate(zip(ml_models, test_data)):
+    for num, (ml, (rm, testd)) in enumerate(zip(ml_models, [test_data[1]])):  # TODO
         if verbosity > 1:
             print('Predict model %s' % rm.name)
 
-        temp_m = np.asarray(list(rm.get_model_parameter('m', do_filter=False)))
-        temp_beta = np.asarray(list(rm.get_model_parameter('beta', do_filter=False)))
-        mask = ~np.isnan(temp_m)
-        mask = np.logical_and(temp_m < 6., mask)
-        mask = np.logical_and(temp_beta < .5, mask)
-
-        prediction_list, est_m_list, est_max_frac_list, est_beta_list = ml.estimate(test_nucl[mask])
-
-        fig, ax = plt.subplots(3, 1, figsize=(8, 7))
-        ax[0].hist(
-            est_m_list,
-            bins='auto',
-            histtype='step',
-            color='magenta',
-            density=True,
-            label='Prediction'
+        input_m = np.asarray(list(rm.get_model_parameter('m', do_filter=False)))
+        input_beta = np.asarray(list(rm.get_model_parameter('beta', do_filter=False)))
+        input_mf = np.asarray(list(rm.get_model_parameter('max_frac', do_filter=False)))
+        mask = ~np.isnan(input_m)
+        mask = np.logical_and(input_m < 6., mask)
+        mask = np.logical_and(input_beta < .5, mask)
+        params = np.asarray([input_m, input_mf, input_beta]).T[mask]
+        mean_pred, var_pred = ml.estimate(params)
+        ml.plot_error(
+            mean_pred,
+            testd[mask],
+            var_pred,
+            params,
+            convert_val=True if ml_type.lower() in ['knn', 'lin'] else False,
+            save_fig=save_fig,
+            save_prefix=save_prefix
         )
-        ax[0].hist(
-            np.asarray(list(rm.get_model_parameter('m', do_filter=False)))[mask],
-            bins='auto',
-            histtype='step',
-            color='red',
-            density=True,
-            label='True'
-        )
-        ax[0].legend(loc='upper right')
-        ax[0].set_ylabel('Density')
-        ax[0].set_title('m')
-
-        ax[1].hist(
-            est_max_frac_list,
-            bins='auto',
-            histtype='step',
-            color='deepskyblue',
-            density=True,
-            label='Prediction'
-        )
-        ax[1].hist(
-            np.asarray(list(rm.get_model_parameter('max_frac', do_filter=False)))[mask],
-            bins='auto',
-            histtype='step',
-            color='red',
-            density=True,
-            label='True'
-        )
-        ax[1].legend(loc='upper right')
-        ax[1].set_ylabel('Density')
-        ax[1].set_title('Maximum fraction')
-
-        ax[2].hist(
-            est_beta_list,
-            bins='auto',
-            histtype='step',
-            color='lime',
-            density=True,
-            label='Prediction'
-        )
-        ax[2].hist(
-            np.asarray(list(rm.get_model_parameter('beta', do_filter=False)))[mask],
-            bins='auto',
-            histtype='step',
-            color='red',
-            density=True,
-            label='True'
-        )
-        ax[2].legend(loc='upper right')
-        ax[2].set_ylabel('Density')
-        ax[2].set_title(r'$\beta$')
-        ax[2].set_xlabel('Value')
-
-        fig.suptitle('Parameter distributions: %s' % rm.name)
-        fig.tight_layout()
-        if save_fig:
-            directory = validate_dir('figures/predict_models')
-            plt.savefig('%s/%s_%s_parameter_distribution.png' % (directory, save_prefix, ml.rmodel.name))
-            plt.close('all')
-        else:
-            plt.show()
-
-        true_repair_list = rm.get_total_repair_fraction(time_scale=time_scale)[mask]
-
-        pred_error_list = []
-        inv_models = [im for num, im in enumerate(rm.models) if mask[num]]
-        for true_repair, pred, jmak_model in zip(true_repair_list, prediction_list, inv_models):
-            error = ParameterMap.error(
-                np.arange(time_scale),
-                real_data=true_repair,
-                est_mean=pred,
-                est_var=None
-            )
-            pred_error_list.append(error)
-            if verbosity > 3:
-                plt.figure(figsize=(8, 7))
-                plt.plot(np.arange(time_scale), true_repair, color='cyan', label='True')
-                plt.plot(np.arange(time_scale), pred, color='blue', label='Prediction')
-                plt.scatter(
-                    jmak_model.time_points.reshape(-1),
-                    jmak_model.data_points.reshape(-1),
-                    color='cyan',
-                    label='Data'
-                )
-                plt.legend(loc='lower right')
-                plt.xlabel('Time')
-                plt.ylabel('Repair fraction')
-                plt.title('Prediction vs data: %s\nError: %.2f' % (jmak_model.name, error))
-                if save_fig:
-                    directory = validate_dir('figures/predict_models/jmak')
-                    plt.savefig('%s/%s_%s_%s_prediction.png' % (directory, save_prefix, ml.rmodel.name, jmak_model.name))
-                    plt.close('all')
-                else:
-                    plt.show()
-
         if save_fig:
             directory = validate_dir('arrays')
-            np.savetxt('%s/%s_%s.csv' % (directory, save_prefix, ml.rmodel.name), np.asarray(pred_error_list), delimiter=',')
-        plt.figure(figsize=(8, 7))
-        plt.hist(pred_error_list, bins='auto')
-        plt.title('Validation error histogram: %s\nMean error: %.2f' % (ml.rmodel.name, np.mean(pred_error_list)))
-        if save_fig:
-            directory = validate_dir('figures/predict_models')
-            plt.savefig('%s/%s_%s_prediction_err.png' % (directory, save_prefix, ml.rmodel.name))
-            plt.close('all')
-        else:
-            plt.show()
+            np.savetxt(
+                '%s/%s_%s_error.csv' % (directory, save_prefix, ml.rmodel.name),
+                (mean_pred - testd)**2,
+                delimiter=','
+            )
 
 
 if __name__ == '__main__':
