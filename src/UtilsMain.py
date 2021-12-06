@@ -1,9 +1,5 @@
 import argparse
 
-from tensorflow.keras.models import Model
-from tensorflow.python.keras.layers import deserialize, serialize
-from tensorflow.python.keras.saving import saving_utils
-
 from src.Model import RegionModel
 from src.DataLoader import create_time_data
 
@@ -198,18 +194,8 @@ def argparse_predict(arguments):
     parser.add_argument('--ml_type', type=str, required=True,
                         help='Define the applied machine learning approach which is used to find the parameter map. '
                              'Possible are: nn | gp')
-    parser.add_argument('--step_size', type=float, default=1e-3,
-                        help='Parameter update step size for the machine learning approaches. If gp is chosen, it is'
-                             'used for fitting hyperparameters. If nn is chosen, it is used as the weight update '
-                             'step size.')
     parser.add_argument('--neg_random', action='store_true', dest='neg_random',
                         help='If set, the biological feature data is randomly shuffled to create a negative control.')
-    parser.add_argument('--num_epochs', type=int, default=200,
-                        help='Number of epochs used for the nn algorithm for learning the function params -> bio. '
-                             'If gp is used, this parameter is ignored.')
-    parser.add_argument('--k_fold', type=int, default=5,
-                        help='Number of k-fold iterations for assessing the quality and variability of the nn mapping.'
-                             'If gp is used, this parameter is ignored.')
     parser.add_argument('--do_each', action='store_true', dest='do_each',
                         help='If set, there is one model per region in each transcript. '
                              'Otherwise beginning, centre of a gene and end are combined in one single model.')
@@ -222,27 +208,6 @@ def argparse_predict(arguments):
     parser.add_argument('--kernel_func_type', type=str, default='eqk',
                         help='Pass the kernel function that is used for the Gaussian process. '
                              'Possible are: eqk | gaussian')
-    parser.add_argument('--kernel_search_verbosity', type=int, default=0,
-                        help='Set the verbosity level for finding optimal hyper parameters.')
-    parser.add_argument('--kernel_scaling_init', type=int, default=10,
-                        help='Set the initialisation scaling of the kernel hyperparameters. The initial value'
-                             'is then set to {random number} * kernel_scaling_init.')
-    parser.add_argument('--noise_scaling_init', type=int, default=5,
-                        help='Set the initialisation scaling of the noise. The initial value is determined by '
-                             '{random number} * noise_scaling_init.')
-    parser.add_argument('--min_m', type=float, default=.8,
-                        help='Minimum value for shaping parameter m for learnt parameter map.')
-    parser.add_argument('--max_m', type=float, default=4.,
-                        help='Maximum value for shaping parameter m for learnt parameter map.')
-    parser.add_argument('--min_beta', type=float, default=8e-3,
-                        help='Minimum value for scaling parameter beta for learnt parameter map.')
-    parser.add_argument('--max_beta', type=float, default=4.5e-2,
-                        help='Maximum value for shaping scaling parameter beta for learnt parameter map.')
-    parser.add_argument('--min_mf', type=float, default=.5,
-                        help='Minimum value for maximum fraction parameter for learnt parameter map.')
-    parser.add_argument('--num_param_values', type=int, default=100,
-                        help='Number of parameter values that are learnt for m, beta, and mf (maximum fraction). '
-                             'The resulting number of learnt parameter combinations is num_param_values^3')
     parser.add_argument('--num_cpus', type=int, default=1,
                         help='Number of processes used for speeding up computations.')
     parser.add_argument('--hist_bins', type=int, default=100,
@@ -259,12 +224,10 @@ def argparse_predict(arguments):
                         help='Verbosity level.')
     parser.add_argument('--time_scale', type=int, default=140,
                         help='Time scale for which the repair dynamics are computed. Default is 140 minutes.')
-    parser.add_argument('--classify', action='store_true', dest='classify',
-                        help='If set, prediction is treated as classification problem, '
-                             'rather than a regression problem'
-                        )
     parser.add_argument('--num_classes', type=int, default=10,
                         help='Determines the number of created classes if --classify flag is set.')
+    parser.add_argument('--kneighbors', type=int, default=10,
+                        help='Number of neighbors in kNN machine learning model')
 
     parsed_args = parser.parse_args(arguments)
     return parsed_args
