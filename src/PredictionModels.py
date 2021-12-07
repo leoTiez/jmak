@@ -238,7 +238,7 @@ class ParameterMap(ABC):
             plt.show()
 
     def discretise(self, bio_data):
-        return np.maximum(np.minimum(np.digitize(bio_data, self.bio_bins) - 1, bio_data - 2), 0)
+        return np.maximum(np.minimum(np.digitize(bio_data, self.bio_bins) - 1, bio_data - 2), 0).astype('int')
 
     def learn(self, verbosity=0):
         pass
