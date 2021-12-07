@@ -184,6 +184,7 @@ class RegionModel:
         if len(time_points.shape) != 2 or len(data_points.shape) != 2:
             raise ValueError('Time points and data points need to be reshaped such that each model has a'
                              ' corresponding row in array.')
+
         self.time_points = time_points
         self.data_points = data_points
         self.models = []
@@ -366,6 +367,7 @@ class RegionModel:
             alpha=.7,
             num_handles=6,
             power_norm=1,
+            title_add='',
             add_beta_legend=False,
             order_cgradient=True,
             data_mask=None,
@@ -375,7 +377,7 @@ class RegionModel:
     ):
         m = np.asarray(list(self.get_model_parameter('m')))
         mf = np.asarray(list(self.get_model_parameter('max_frac')))
-        beta = (np.asarray(list(self.get_model_parameter('beta'))) * size_scaling) ** size_power
+        beta = np.minimum((np.asarray(list(self.get_model_parameter('beta'))) * size_scaling) ** size_power, 500)
 
         if data_mask is None:
             data_mask = np.ones(m.size, dtype='bool')
@@ -409,7 +411,7 @@ class RegionModel:
         )
         plt.xlabel('m')
         plt.ylabel('Maximum fraction')
-        plt.title('Parameter distribution %s' % self.name)
+        plt.title('Parameter distribution %s %s' % (self.name, title_add))
         label_idx = np.linspace(np.min(cgrad), np.max(cgrad), 6, dtype='int')
         cbar = plt.colorbar(scatter, ticks=label_idx)
         cbar.ax.set_yticklabels(['%.2f' % label for label in bins[label_idx - 1]])
