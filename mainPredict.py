@@ -97,7 +97,7 @@ def main():
                           '--save_prefix=%s_lin_%s%s_random '
                           '--save_fig '
                           '--to_pickle '
-                          '--num_cpus=5 '
+                          '--num_cpus=1 '
                           '--verbosity=4 '
                           '--load_if_exist'
                           % (
@@ -147,7 +147,7 @@ def main():
                               '--save_prefix=%s_lin_%s%s_random '
                               '--save_fig '
                               '--to_pickle '
-                              '--num_cpus=5 '
+                              '--num_cpus=1 '
                               '--verbosity=4 '
                               '--load_if_exist'
                               % (
