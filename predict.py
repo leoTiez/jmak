@@ -179,6 +179,7 @@ def main_nucl(args):
         print('Load CPD')
     train_chrom = load_chrom_split('train')
     test_chrom = load_chrom_split('test')
+
     train_data, test_data = load_chrom_data(train_chrom_list=train_chrom, test_chrom_list=test_chrom)
     region_model_list = create_models(train_data, test_data, do_each=do_each)
 
@@ -200,7 +201,7 @@ def main_nucl(args):
         test_end_igr
     )
 
-    if bio_type.lower() == 'size':
+    if bio_type.lower() in ['slam', 'size']:
         region_model_list = list(filter(lambda x: 'gene' in x.name.lower() or 'nts' in x.name.lower(), region_model_list))
     train_data, test_data = [], []
     for rm in region_model_list:
@@ -219,14 +220,14 @@ def main_nucl(args):
         print('Learn models')
         if neg_random:
             print('Randomise model')
-    for rm, traind in [train_data[1]]:  # TODO
+    for rm, traind in [train_data]:  # TODO
         if verbosity > 0:
             print('Create parameter mapping for model %s' % rm.name)
         temp_m = np.asarray(list(rm.get_model_parameter('m', do_filter=False)))
         temp_beta = np.asarray(list(rm.get_model_parameter('beta', do_filter=False)))
         mask = ~np.isnan(temp_m)
         mask = np.logical_and(temp_m < 6., mask)
-        mask = np.logical_and(temp_beta < .5, mask)
+        mask = np.logical_and(temp_beta < .05, mask)
 
         rm.models = [model for num, model in enumerate(rm.models) if mask[num]]
         if load_if_exist:
@@ -251,6 +252,7 @@ def main_nucl(args):
                 randomise=neg_random,
                 rm_percentile=rm_percentile
             )
+
         elif ml_type == 'lin':
             b_model = LinearParameterMap(
                 rm,
@@ -288,7 +290,8 @@ def main_nucl(args):
             verbosity=verbosity,
             save_fig=save_fig,
             save_prefix=save_prefix,
-            plotted_dp=plotted_dp
+            plotted_dp=plotted_dp,
+            levels=num_classes
         )
 
         mean, var = b_model.estimate(b_model.data_params, convert_dp=False)
@@ -307,7 +310,7 @@ def main_nucl(args):
     if verbosity > 0:
         print('Predict')
 
-    for num, (ml, (rm, testd)) in enumerate(zip(ml_models, [test_data[1]])):  # TODO
+    for num, (ml, (rm, testd)) in enumerate(zip(ml_models, [test_data])):  # TODO
         if verbosity > 1:
             print('Predict model %s' % rm.name)
 
@@ -316,7 +319,7 @@ def main_nucl(args):
         input_mf = np.asarray(list(rm.get_model_parameter('max_frac', do_filter=False)))
         mask = ~np.isnan(input_m)
         mask = np.logical_and(input_m < 6., mask)
-        mask = np.logical_and(input_beta < .5, mask)
+        mask = np.logical_and(input_beta < .05, mask)
         params = np.asarray([input_m, input_mf, input_beta]).T[mask]
         mean_pred, var_pred = ml.estimate(params)
         ml.plot_error(
