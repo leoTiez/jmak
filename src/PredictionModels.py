@@ -17,6 +17,7 @@ from sklearn.decomposition import PCA
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.gaussian_process.kernels import *
+from sklearn.mixture import GaussianMixture
 
 
 from src.Utils import validate_dir, frequency_bins
@@ -84,7 +85,7 @@ class ParameterMap(ABC):
             self.bio_bins = frequency_bins(self.all_bio_data, num_bins)
             # Increase border of last bin to include last data point
             self.bio_bins[-1] += .1
-            self.all_bio_data = np.digitize(self.all_bio_data, self.bio_bins) - 1
+            self.all_bio_data = self.discretise(self.all_bio_data)
 
         self.data_params, self.data_params_val, self.bio_data, self.bio_data_val = None, None, None, None
         self.reshuffle()
@@ -125,18 +126,12 @@ class ParameterMap(ABC):
         return params
 
     @staticmethod
-    def error(time_sample, real_data, est_mean, est_var=None):
-        time_sample = np.asarray(time_sample)
-        max_real = np.max(real_data)
-        max_est = np.max(est_mean)
-        real_data_ = real_data / max_real
-        est_mean_ = est_mean / max_est
-        s = (np.asarray(real_data_) * 100 - np.asarray(est_mean_) * 100)**2
-        if est_var is None:
-            return np.mean(s), (max_real * 100 - max_est * 100)**2
+    def error(real_data, est_mean, is_regression=True):
+        if is_regression:
+            s = (np.asarray(real_data) - np.asarray(est_mean))**2
         else:
-            s = np.sum(s)
-            return (s + np.sum(est_var)) / float(len(real_data))
+            s = real_data != est_mean
+        return np.mean(s)
 
     def plot_parameter_map(
             self,
@@ -190,7 +185,7 @@ class ParameterMap(ABC):
         if convert_params:
             params = self.convert(params)
         if convert_val:
-            true_val = np.digitize(true_val, self.bio_bins)
+            true_val = self.discretise(true_val)
         pca_params = self.pca.transform(params)
         fig = plt.figure(figsize=(8, 7))
         ax1 = plt.subplot2grid((3, 4), (0, 0), colspan=3, rowspan=2)
@@ -219,8 +214,12 @@ class ParameterMap(ABC):
         ax2.set_yticklabels([])
         ax2.set_ylim(cbar.get_clim())
         ax3 = plt.subplot2grid((3, 4), (2, 0), colspan=4)
-        ax3.hist((mean - true_val)**2, bins='auto')
-        ax3.set_title('MSE: %.3f' % np.mean(mean - true_val)**2)
+        error = self.error(real_data=true_val, est_mean=mean, is_regression=not self.discretise_bio)
+        num_bins = np.minimum(20, self.bio_bins.size) if self.discretise_bio else 20
+        error_name = 'Absolute error' if self.discretise_bio else 'MSE'
+        error_dist = np.abs(true_val - mean) if self.discretise_bio else (true_val - mean)**2
+        ax3.hist(error_dist, bins=num_bins)
+        ax3.set_title('%s: %.3f' % (error_name, error))
         fig.tight_layout()
         if save_fig:
             directory = validate_dir('figures/predict_models')
@@ -230,7 +229,7 @@ class ParameterMap(ABC):
             plt.show()
 
     def discretise(self, bio_data):
-        return np.digitize(bio_data, self.bio_bins)
+        return np.maximum(np.minimum(np.digitize(bio_data, self.bio_bins) - 1, bio_data - 2), 0)
 
     def learn(self, verbosity=0):
         pass
@@ -263,7 +262,7 @@ class GPParameterMap(ParameterMap):
             rm_percentile=rm_percentile,
             random_state=random_state
         )
-        self.gpr = GaussianProcessRegressor(kernel=RBF(), random_state=random_state)
+        self.gpr = GaussianProcessRegressor(kernel=RBF() + WhiteKernel(), random_state=random_state)
 
     def learn(self, verbosity=0):
         self.gpr.fit(self.data_params, self.bio_data)
