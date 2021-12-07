@@ -22,11 +22,14 @@ def transform_path(path_string):
     return os.path.abspath(path)
 
 
-def load_chrom_split(data_type='train', path='chrom.data'):
+def load_chrom_split(path='chrom.data', return_all=True, data_type=''):
     path = transform_path(path)
     cs_df = pd.read_csv(path, sep='\t')
-    cs_df_type = cs_df[cs_df['data_type'] == data_type]
-    return cs_df_type['chr'].to_list()
+    if return_all:
+        return cs_df[cs_df['chr'] != 'chrM']['chr'].to_list()
+    else:
+        cs_df_type = cs_df[cs_df['data_type'] == data_type]
+        return cs_df_type['chr'].to_list()
 
 
 def load_meres(identifier='centromeres', path=None):
@@ -217,8 +220,7 @@ def normalise_data(trans, chrom, data, ref_genome, num_bins=3):
 
 
 def load_chrom_data(
-        train_chrom_list=['chrIII'],
-        test_chrom_list=['chrII'],
+        chrom_list=['chrIII'],
         bw_list=[
             'data/seq/0h_A1_minus.bw',
             'data/seq/0h_A1_plus.bw',
@@ -308,16 +310,7 @@ def load_chrom_data(
     for bw in bw_list:
         bw_objs.append(reader.load_big_file(bw, rel_path='', is_abs_path=True))
 
-    # Prepare train data
-    train_data = get_data(train_chrom_list)
-
-    # Prepare test data
-    if test_chrom_list:
-        test_data = get_data(test_chrom_list)
-    else:
-        test_data = None
-
-    return train_data, test_data
+    return get_data(chrom_list)
 
 
 def create_time_data(num_pos, num_datapoints):
@@ -329,16 +322,14 @@ def create_time_data(num_pos, num_datapoints):
 
 
 def load_bio_data(
-        train_chrom_starti_tuple_list,
-        train_chrom_endi_tuple_list,
-        test_chrom_starti_tuple_list,
-        test_chrom_endi_tuple_list,
+        chrom_starti_tuple_list,
+        chrom_endi_tuple_list,
         bw_paths,
         shuffle_data=False,
         use_directionality=False,
         use_sum=False
 ):
-    def get_data(chrom_starti_tuple_list, chrom_endi_tuple_list):
+    def get_data():
         num_data_lists = len(bw_paths) if not use_directionality else len(bw_paths) // 2
         data_list = [[] for _ in range(num_data_lists)]
         old_chrom = ''
@@ -381,13 +372,5 @@ def load_bio_data(
         bw_objs.append(reader.load_big_file(bw, rel_path='', is_abs_path=True))
 
     # Prepare train data
-    train_data = get_data(train_chrom_starti_tuple_list, train_chrom_endi_tuple_list)
-
-    # Prepare test data
-    if test_chrom_starti_tuple_list:
-        test_data = get_data(test_chrom_starti_tuple_list, test_chrom_endi_tuple_list)
-    else:
-        test_data = None
-
-    return train_data, test_data
+    return get_data()
 
