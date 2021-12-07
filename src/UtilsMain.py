@@ -4,100 +4,63 @@ from src.Model import RegionModel
 from src.DataLoader import create_time_data
 
 
-def create_models(train_data, test_data, do_each=True):
-    (train_trans, train_ntrans, train_igr, train_start_igr, _, train_transcriptome) = train_data
-    (test_trans, test_ntrans, test_igr, test_start_igr, _, test_transcriptome) = test_data
+def create_models(data, do_each=True):
+    (trans, ntrans, igr, start_igr, _, transcriptome) = data
     if do_each:
         iter = zip(
             [
-                train_trans[:, :, 0],
-                train_trans[:, :, 1],
-                train_trans[:, :, 2],
-                train_ntrans[:, :, 0],
-                train_ntrans[:, :, 1],
-                train_ntrans[:, :, 2],
-                train_igr,
-                test_trans[:, :, 0],
-                test_trans[:, :, 1],
-                test_trans[:, :, 2],
-                test_ntrans[:, :, 0],
-                test_ntrans[:, :, 1],
-                test_ntrans[:, :, 2],
-                test_igr
+                trans[:, :, 0],
+                trans[:, :, 1],
+                trans[:, :, 2],
+                ntrans[:, :, 0],
+                ntrans[:, :, 1],
+                ntrans[:, :, 2],
+                igr
             ],
             [
-                'Train genes start',
-                'Train genes centre',
-                'Train genes end',
-                'Train NTS start',
-                'Train NTS centre',
-                'Train NTS end',
-                'Train intergenic regions',
-                'Test genes start',
-                'Test genes centre',
-                'Test genes end',
-                'Test NTS start',
-                'Test NTS centre',
-                'Test NTS end',
-                'Test intergenic regions'
+                'Genes start',
+                'Genes centre',
+                'Genes end',
+                'NTS start',
+                'NTS centre',
+                'NTS end',
+                'Intergenic regions'
             ],
             [
-                'data/jmak/train_trans_start.csv',
-                'data/jmak/train_trans_centre.csv',
-                'data/jmak/train_trans_end.csv',
-                'data/jmak/train_ntrans_start.csv',
-                'data/jmak/train_ntrans_centre.csv',
-                'data/jmak/train_ntrans_end.csv',
-                'data/jmak/train_igr.csv',
-                'data/jmak/test_trans_start.csv',
-                'data/jmak/test_trans_centre.csv',
-                'data/jmak/test_trans_end.csv',
-                'data/jmak/test_ntrans_start.csv',
-                'data/jmak/test_ntrans_centre.csv',
-                'data/jmak/test_ntrans_end.csv',
-                'data/jmak/test_igr.csv'
+                'data/jmak/trans_start.csv',
+                'data/jmak/trans_centre.csv',
+                'data/jmak/trans_end.csv',
+                'data/jmak/ntrans_start.csv',
+                'data/jmak/ntrans_centre.csv',
+                'data/jmak/ntrans_end.csv',
+                'data/jmak/igr.csv'
             ]
         )
     else:
         iter = zip(
             [
-                train_trans,
-                train_ntrans,
-                train_igr,
-                test_trans,
-                test_ntrans,
-                test_igr
+                trans,
+                trans,
+                igr
             ],
             [
-                'Train genes total',
-                'Train NTS total',
-                'Train intergenic regions',
-                'Test genes total',
-                'Test NTS total',
-                'Test intergenic regions'
+                'Genes total',
+                'NTS total',
+                'Intergenic regions'
             ],
             [
-                'data/jmak/train_trans_total.csv',
-                'data/jmak/train_ntrans_total.csv',
-                'data/jmak/train_igr.csv',
-                'data/jmak/test_trans_total.csv',
-                'data/jmak/test_ntrans_total.csv',
-                'data/jmak/test_igr.csv'
+                'data/jmak/trans_total.csv',
+                'data/jmak/ntrans_total.csv',
+                'data/jmak/igr.csv'
             ]
         )
 
     model_list = []
     for data, name, file_name in iter:
-        if 'train' in name.lower():
-            if 'trans' in file_name.lower():
-                chrom_list = train_transcriptome['chr'].to_list()
-            else:
-                chrom_list = map(lambda x: x[0], train_start_igr)
+        if 'trans' in file_name.lower():
+            chrom_list = transcriptome['chr'].to_list()
         else:
-            if 'trans' in file_name.lower():
-                chrom_list = test_transcriptome['chr'].to_list()
-            else:
-                chrom_list = map(lambda x: x[0], test_start_igr)
+            chrom_list = map(lambda x: x[0], start_igr)
         if not do_each and 'trans' in file_name:
             num_pos = 3
         elif 'igr' in file_name:
@@ -226,8 +189,8 @@ def argparse_predict(arguments):
                         help='Time scale for which the repair dynamics are computed. Default is 140 minutes.')
     parser.add_argument('--num_classes', type=int, default=10,
                         help='Determines the number of created classes if --classify flag is set.')
-    parser.add_argument('--kneighbors', type=int, default=10,
-                        help='Number of neighbors in kNN machine learning model')
+    parser.add_argument('--kneighbour', type=int, default=10,
+                        help='Number of neighbour in kNN machine learning model')
 
     parsed_args = parser.parse_args(arguments)
     return parsed_args
