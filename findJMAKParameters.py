@@ -79,9 +79,7 @@ def test_main(args):
 
 
 def main(args):
-    train_chrom = load_chrom_split('train')
-    test_chrom = load_chrom_split('test')
-
+    chrom_list = load_chrom_split()
     min_f_trans = args.min_f_trans
     min_f_igr = args.min_f_igr
     max_f = args.max_f
@@ -93,332 +91,168 @@ def main(args):
     verbosity = args.verbosity
     save_fig = args.save_fig
 
-    train_data, test_data = load_chrom_data(train_chrom_list=train_chrom, test_chrom_list=test_chrom)
-    (train_trans, train_ntrans, train_igr, train_igr_start, train_igr_end, train_transcriptome) = train_data
-    (test_trans, test_ntrans, test_igr, test_igr_start, test_igr_end, test_transcriptome) = test_data
+    train_data = load_chrom_data(chrom_list=chrom_list)
+    (trans, ntrans, igr, igr_start, igr_end, transcriptome) = train_data
 
-    # Train
     # Transcripts
     if args.do_each:
         create_model(
-            train_trans[:, :, 0],
+            trans[:, :, 0],
             1,
-            'Train genes start',
+            'Genes start',
             min_f=min_f_trans,
             max_f=max_f,
             delta_f=delta_f,
             jmak_name_list=list(map(
                 lambda x: '%s %s' % (x[0], x[1]),
-                zip(train_transcriptome['chr'].to_list(), train_transcriptome['ORF'].to_list())
+                zip(transcriptome['chr'].to_list(), transcriptome['ORF'].to_list())
             )),
             heatmap_color=heatmap_color_trans,
             num_cpus=num_cpus,
             verbosity=verbosity,
             save_fig=save_fig,
-            save_name='train_trans_start'
+            save_name='trans_start'
         )
         create_model(
-            train_trans[:, :, 1],
+            trans[:, :, 1],
             1,
-            'Train genes centre',
+            'Genes centre',
             min_f=min_f_trans,
             max_f=max_f,
             delta_f=delta_f,
             jmak_name_list=list(map(
                 lambda x: '%s %s' % (x[0], x[1]),
-                zip(train_transcriptome['chr'].to_list(), train_transcriptome['ORF'].to_list())
+                zip(transcriptome['chr'].to_list(), transcriptome['ORF'].to_list())
             )),
             heatmap_color=heatmap_color_trans,
             num_cpus=num_cpus,
             verbosity=verbosity,
             save_fig=save_fig,
-            save_name='train_trans_centre'
+            save_name='trans_centre'
         )
         create_model(
-            train_trans[:, :, 2],
+            trans[:, :, 2],
             1,
-            'Train genes end',
+            'Genes end',
             min_f=min_f_trans,
             max_f=max_f,
             delta_f=delta_f,
             jmak_name_list=list(map(
                 lambda x: '%s %s' % (x[0], x[1]),
-                zip(train_transcriptome['chr'].to_list(), train_transcriptome['ORF'].to_list())
+                zip(transcriptome['chr'].to_list(), transcriptome['ORF'].to_list())
             )),
             heatmap_color=heatmap_color_trans,
             num_cpus=num_cpus,
             verbosity=verbosity,
             save_fig=save_fig,
-            save_name='train_trans_end'
+            save_name='trans_end'
         )
     else:
         create_model(
-            train_trans,
+            trans,
             3,
-            'Train genes total',
+            'Genes total',
             min_f=min_f_trans,
             max_f=max_f,
             delta_f=delta_f,
             jmak_name_list=list(map(
                 lambda x: '%s %s' % (x[0], x[1]),
-                zip(train_transcriptome['chr'].to_list(), train_transcriptome['ORF'].to_list())
+                zip(transcriptome['chr'].to_list(), transcriptome['ORF'].to_list())
             )),
             heatmap_color=heatmap_color_trans,
             num_cpus=num_cpus,
             verbosity=verbosity,
             save_fig=save_fig,
-            save_name='train_trans_total'
+            save_name='trans_total'
         )
     # NTS
     if args.do_each:
         create_model(
-            train_ntrans[:, :, 0],
+            ntrans[:, :, 0],
             1,
-            'Train NTS start',
+            'NTS start',
             min_f=min_f_igr,
             max_f=max_f,
             delta_f=delta_f,
             jmak_name_list=list(map(
                 lambda x: '%s %s' % (x[0], x[1]),
-                zip(train_transcriptome['chr'].to_list(), train_transcriptome['ORF'].to_list())
+                zip(transcriptome['chr'].to_list(), transcriptome['ORF'].to_list())
             )),
             heatmap_color=heatmap_color_ntrans,
             num_cpus=num_cpus,
             verbosity=verbosity,
             save_fig=save_fig,
-            save_name='train_ntrans_start'
+            save_name='ntrans_start'
         )
         create_model(
-            train_ntrans[:, :, 1],
+            ntrans[:, :, 1],
             1,
-            'Train NTS centre',
+            'NTS centre',
             min_f=min_f_igr,
             max_f=max_f,
             delta_f=delta_f,
             jmak_name_list=list(map(
                 lambda x: '%s %s' % (x[0], x[1]),
-                zip(train_transcriptome['chr'].to_list(), train_transcriptome['ORF'].to_list())
+                zip(transcriptome['chr'].to_list(), transcriptome['ORF'].to_list())
             )),
             heatmap_color=heatmap_color_ntrans,
             num_cpus=num_cpus,
             verbosity=verbosity,
             save_fig=save_fig,
-            save_name='train_ntrans_centre'
+            save_name='ntrans_centre'
         )
         create_model(
-            train_ntrans[:, :, 2],
+            ntrans[:, :, 2],
             1,
-            'Train NTS end',
+            'NTS end',
             min_f=min_f_igr,
             max_f=max_f,
             delta_f=delta_f,
             jmak_name_list=list(map(
                 lambda x: '%s %s' % (x[0], x[1]),
-                zip(train_transcriptome['chr'].to_list(), train_transcriptome['ORF'].to_list())
+                zip(transcriptome['chr'].to_list(), transcriptome['ORF'].to_list())
             )),
             heatmap_color=heatmap_color_ntrans,
             num_cpus=num_cpus,
             verbosity=verbosity,
             save_fig=save_fig,
-            save_name='train_ntrans_end'
+            save_name='ntrans_end'
         )
     else:
         create_model(
-            train_ntrans,
+            ntrans,
             3,
-            'Train NTS total',
+            'NTS total',
             min_f=min_f_igr,
             max_f=max_f,
             delta_f=delta_f,
             jmak_name_list=list(map(
                 lambda x: '%s %s' % (x[0], x[1]),
-                zip(train_transcriptome['chr'].to_list(), train_transcriptome['ORF'].to_list())
+                zip(transcriptome['chr'].to_list(), transcriptome['ORF'].to_list())
             )),
             heatmap_color=heatmap_color_ntrans,
             num_cpus=num_cpus,
             verbosity=verbosity,
             save_fig=save_fig,
-            save_name='train_ntrans_total'
+            save_name='ntrans_total'
         )
     # Intergenic
     create_model(
-        train_igr,
+        igr,
         2,
-        'Train intergenic regions',
+        'Intergenic regions',
         min_f=min_f_igr,
         max_f=max_f,
         delta_f=delta_f,
         jmak_name_list=list(map(
                 lambda x: '%s %s' % (x[0][0], x[1]),
-                zip(train_igr_start, range(len(train_igr_start)))
+                zip(igr_start, range(len(igr_start)))
             )),
         heatmap_color=heatmap_color_igr,
         num_cpus=num_cpus,
         verbosity=verbosity,
         save_fig=save_fig,
-        save_name='train_igr'
-    )
-
-    # Test
-    # Transcripts
-    if args.do_each:
-        create_model(
-            test_trans[:, :, 0],
-            1,
-            'Test genes start',
-            min_f=min_f_trans,
-            max_f=max_f,
-            delta_f=delta_f,
-            jmak_name_list=list(map(
-                lambda x: '%s %s' % (x[0], x[1]),
-                zip(test_transcriptome['chr'].to_list(), test_transcriptome['ORF'].to_list())
-            )),
-            heatmap_color=heatmap_color_trans,
-            num_cpus=num_cpus,
-            verbosity=verbosity,
-            save_fig=save_fig,
-            save_name='test_trans_start'
-        )
-        create_model(
-            test_trans[:, :, 1],
-            1,
-            'Test genes centre',
-            min_f=min_f_trans,
-            max_f=max_f,
-            delta_f=delta_f,
-            jmak_name_list=list(map(
-                lambda x: '%s %s' % (x[0], x[1]),
-                zip(test_transcriptome['chr'].to_list(), test_transcriptome['ORF'].to_list())
-            )),
-            heatmap_color=heatmap_color_trans,
-            num_cpus=num_cpus,
-            verbosity=verbosity,
-            save_fig=save_fig,
-            save_name='test_trans_centre'
-        )
-        create_model(
-            test_trans[:, :, 2],
-            1,
-            'Test genes end',
-            min_f=min_f_trans,
-            max_f=max_f,
-            delta_f=delta_f,
-            jmak_name_list=list(map(
-                lambda x: '%s %s' % (x[0], x[1]),
-                zip(test_transcriptome['chr'].to_list(), test_transcriptome['ORF'].to_list())
-            )),
-            heatmap_color=heatmap_color_trans,
-            num_cpus=num_cpus,
-            verbosity=verbosity,
-            save_fig=save_fig,
-            save_name='test_trans_end'
-        )
-    else:
-        create_model(
-            test_trans,
-            3,
-            'Test genes total',
-            min_f=min_f_trans,
-            max_f=max_f,
-            delta_f=delta_f,
-            jmak_name_list=list(map(
-                lambda x: '%s %s' % (x[0], x[1]),
-                zip(test_transcriptome['chr'].to_list(), test_transcriptome['ORF'].to_list())
-            )),
-            heatmap_color=heatmap_color_trans,
-            num_cpus=num_cpus,
-            verbosity=verbosity,
-            save_fig=save_fig,
-            save_name='test_trans_total'
-        )
-    # NTS
-    if args.do_each:
-        create_model(
-            test_ntrans[:, :, 0],
-            1,
-            'Test NTS start',
-            min_f=min_f_igr,
-            max_f=max_f,
-            delta_f=delta_f,
-            jmak_name_list=list(map(
-                lambda x: '%s %s' % (x[0], x[1]),
-                zip(test_transcriptome['chr'].to_list(), test_transcriptome['ORF'].to_list())
-            )),
-            heatmap_color=heatmap_color_ntrans,
-            num_cpus=num_cpus,
-            verbosity=verbosity,
-            save_fig=save_fig,
-            save_name='test_ntrans_start'
-        )
-        create_model(
-            test_ntrans[:, :, 1],
-            1,
-            'Test NTS centre',
-            min_f=min_f_igr,
-            max_f=max_f,
-            delta_f=delta_f,
-            jmak_name_list=list(map(
-                lambda x: '%s %s' % (x[0], x[1]),
-                zip(test_transcriptome['chr'].to_list(), test_transcriptome['ORF'].to_list())
-            )),
-            heatmap_color=heatmap_color_ntrans,
-            num_cpus=num_cpus,
-            verbosity=verbosity,
-            save_fig=save_fig,
-            save_name='test_ntrans_centre'
-        )
-        create_model(
-            test_ntrans[:, :, 2],
-            1,
-            'Test NTS end',
-            min_f=min_f_igr,
-            max_f=max_f,
-            delta_f=delta_f,
-            jmak_name_list=list(map(
-                lambda x: '%s %s' % (x[0], x[1]),
-                zip(test_transcriptome['chr'].to_list(), test_transcriptome['ORF'].to_list())
-            )),
-            heatmap_color=heatmap_color_ntrans,
-            num_cpus=num_cpus,
-            verbosity=verbosity,
-            save_fig=save_fig,
-            save_name='test_ntrans_end'
-        )
-    else:
-        create_model(
-            test_ntrans,
-            3,
-            'Test NTS total',
-            min_f=min_f_igr,
-            max_f=max_f,
-            delta_f=delta_f,
-            jmak_name_list=list(map(
-                lambda x: '%s %s' % (x[0], x[1]),
-                zip(test_transcriptome['chr'].to_list(), test_transcriptome['ORF'].to_list())
-            )),
-            heatmap_color=heatmap_color_ntrans,
-            num_cpus=num_cpus,
-            verbosity=verbosity,
-            save_fig=save_fig,
-            save_name='test_ntrans_total'
-        )
-    # Intergenic
-    create_model(
-        test_igr,
-        2,
-        'test intergenic regions',
-        min_f=min_f_igr,
-        max_f=max_f,
-        delta_f=delta_f,
-        jmak_name_list=list(map(
-                lambda x: '%s %s' % (x[0][0], x[1]),
-                zip(test_igr_start, range(len(test_igr_start)))
-            )),
-        heatmap_color=heatmap_color_igr,
-        num_cpus=num_cpus,
-        verbosity=verbosity,
-        save_fig=save_fig,
-        save_name='test_igr'
+        save_name='igr'
     )
 
 
