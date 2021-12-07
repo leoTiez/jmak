@@ -201,8 +201,9 @@ class ParameterMap(ABC):
         divider = make_axes_locatable(ax1)
         cax = divider.append_axes('right', size='5%', pad=0.05)
         fig.colorbar(cbar, cax=cax, orientation='vertical')
-        ax1.set_title('Absolut prediction error: %.1f' % np.median(mean - true_val))
-
+        ax1.set_title('Median absolut prediction error: %.1f' % np.median(mean - true_val))
+        ax1.set_xlabel('PC 1')
+        ax1.set_ylabel('PC 1')
         ax2 = plt.subplot2grid((3, 4), (0, 3), rowspan=2)
         ax2.hist(
             mean - true_val,
@@ -210,8 +211,14 @@ class ParameterMap(ABC):
             range=cbar.get_clim(),
             orientation='horizontal'
         )
+        ax2.set_title('Deviance')
+        ax2.set_xlabel('#data')
         ax2.set_yticks([])
         ax2.set_yticklabels([])
+        ax2.spines['top'].set_visible(False)
+        ax2.spines['right'].set_visible(False)
+        ax2.spines['bottom'].set_visible(False)
+        ax2.spines['left'].set_visible(False)
         ax2.set_ylim(cbar.get_clim())
         ax3 = plt.subplot2grid((3, 4), (2, 0), colspan=4)
         error = self.error(real_data=true_val, est_mean=mean, is_regression=not self.discretise_bio)
@@ -220,6 +227,8 @@ class ParameterMap(ABC):
         error_dist = np.abs(true_val - mean) if self.discretise_bio else (true_val - mean)**2
         ax3.hist(error_dist, bins=num_bins)
         ax3.set_title('%s: %.3f' % (error_name, error))
+        ax3.set_xlabel(error_name)
+        ax3.set_ylabel('#data')
         fig.tight_layout()
         if save_fig:
             directory = validate_dir('figures/predict_models')
