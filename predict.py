@@ -207,7 +207,8 @@ def main(args):
                     pfile.close()
                     continue
                 except:
-                    pass
+                    if verbosity > 0:
+                        print('Could not find existing ml file. Create new ml object.')
             else:
                 if verbosity > 0:
                     print('Could not find existing ml file. Create new ml object.')
