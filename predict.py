@@ -299,14 +299,6 @@ def main(args):
             save_prefix='%s_test' % save_prefix
         )
 
-        if save_fig:
-            directory = validate_dir('arrays')
-            np.savetxt(
-                '%s/%s_%s_error.csv' % (directory, save_prefix, ml.rmodel.name),
-                (mean_pred - testd[mask])**2,
-                delimiter=','
-            )
-
 
 if __name__ == '__main__':
     args = argparse_predict(sys.argv[1:])
