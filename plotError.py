@@ -9,12 +9,18 @@ from src.UtilsMain import argparse_errorplotter
 from src.Utils import validate_dir
 
 
+def trim_data(data, rm_percentile=5):
+    lower, upper = np.percentile(data, [rm_percentile / 2., 100. - rm_percentile / 2.])
+    return data[np.logical_and(data > lower, data < upper)]
+
+
 def main(args):
     array_folder = args.array_dir
     save_prefix = args.save_prefix
     max_iter = args.max_iter
     title_biotype = args.title_biotype
     save_fig = args.save_fig
+    rm_percentile = 20
 
     gene_s = np.empty(0)
     gene_c = np.empty(0)
@@ -29,33 +35,33 @@ def main(args):
     while True and i < max_iter:
         i += 1
         if 'total' in save_prefix:
-            if not os.path.isfile('%s/%s%s_Train genes total.csv' % (array_folder, save_prefix, i)):
+            if not os.path.isfile('%s/%s%s_Genes total_error.csv' % (array_folder, save_prefix, i)):
                 break
 
-            gs = np.loadtxt('%s/%s%s_Train genes total.csv' % (array_folder, save_prefix, i), delimiter=',')
-            ntss = np.loadtxt('%s/%s%s_Train NTS total.csv' % (array_folder, save_prefix, i), delimiter=',')
+            gs = np.loadtxt('%s/%s%s_Genes total_error.csv' % (array_folder, save_prefix, i), delimiter=',')
+            ntss = np.loadtxt('%s/%s%s_NTS total_error.csv' % (array_folder, save_prefix, i), delimiter=',')
 
-            if 'size' not in title_biotype.lower():
+            if 'size' not in title_biotype.lower() and 'slam' not in title_biotype.lower():
                 intergen = np.loadtxt(
-                    '%s/%s%s_Train intergenic regions.csv' % (array_folder, save_prefix, i),
+                    '%s/%s%s_Intergenic regions_error.csv' % (array_folder, save_prefix, i),
                     delimiter=','
                 )
                 igr = np.append(igr, intergen)
 
         else:
-            if not os.path.isfile('%s/%s%s_Train genes start.csv' % (array_folder, save_prefix, i)):
+            if not os.path.isfile('%s/%s%s_Genes start_error.csv' % (array_folder, save_prefix, i)):
                 break
-            gs = np.loadtxt('%s/%s%s_Train genes start.csv' % (array_folder, save_prefix, i), delimiter=',')
-            gc = np.loadtxt('%s/%s%s_Train genes centre.csv' % (array_folder, save_prefix, i), delimiter=',')
-            ge = np.loadtxt('%s/%s%s_Train genes end.csv' % (array_folder, save_prefix, i), delimiter=',')
+            gs = np.loadtxt('%s/%s%s_Genes start_error.csv' % (array_folder, save_prefix, i), delimiter=',')
+            gc = np.loadtxt('%s/%s%s_Genes centre_error.csv' % (array_folder, save_prefix, i), delimiter=',')
+            ge = np.loadtxt('%s/%s%s_Genes end_error.csv' % (array_folder, save_prefix, i), delimiter=',')
 
-            ntss = np.loadtxt('%s/%s%s_Train NTS start.csv' % (array_folder, save_prefix, i), delimiter=',')
-            ntsc = np.loadtxt('%s/%s%s_Train NTS centre.csv' % (array_folder, save_prefix, i), delimiter=',')
-            ntse = np.loadtxt('%s/%s%s_Train NTS end.csv' % (array_folder, save_prefix, i), delimiter=',')
+            ntss = np.loadtxt('%s/%s%s_NTS start_error.csv' % (array_folder, save_prefix, i), delimiter=',')
+            ntsc = np.loadtxt('%s/%s%s_NTS centre_error.csv' % (array_folder, save_prefix, i), delimiter=',')
+            ntse = np.loadtxt('%s/%s%s_NTS end_error.csv' % (array_folder, save_prefix, i), delimiter=',')
 
-            if 'size' not in title_biotype.lower():
+            if 'size' not in title_biotype.lower() and 'slam' not in title_biotype.lower():
                 intergen = np.loadtxt(
-                    '%s/%s%s_Train intergenic regions.csv' % (array_folder, save_prefix, i),
+                    '%s/%s%s_Intergenic regions_error.csv' % (array_folder, save_prefix, i),
                     delimiter=','
                 )
                 igr = np.append(igr, intergen)
@@ -67,6 +73,17 @@ def main(args):
 
         gene_s = np.append(gene_s, gs)
         nts_s = np.append(nts_s, ntss)
+
+    if 'gp' in save_prefix:
+        gene_s = trim_data(gene_s, rm_percentile=rm_percentile)
+        nts_s = trim_data(nts_s, rm_percentile=rm_percentile)
+        if 'size' not in title_biotype.lower() and 'slam' not in title_biotype.lower():
+            igr = trim_data(igr, rm_percentile=rm_percentile)
+        if 'each' in save_prefix:
+            gene_c = trim_data(gene_c, rm_percentile=rm_percentile)
+            gene_e = trim_data(gene_e, rm_percentile=rm_percentile)
+            nts_c = trim_data(nts_c, rm_percentile=rm_percentile)
+            nts_e = trim_data(nts_e, rm_percentile=rm_percentile)
 
     rand_gene_s = np.empty(0)
     rand_gene_c = np.empty(0)
@@ -81,32 +98,32 @@ def main(args):
     while True and i < max_iter:
         i += 1
         if 'total' in save_prefix:
-            if not os.path.isfile('%s/%s_random%s_Train genes total.csv' % (array_folder, save_prefix, i)):
+            if not os.path.isfile('%s/%s%s_random_Genes total_error.csv' % (array_folder, save_prefix, i)):
                 break
 
-            randg_s = np.loadtxt('%s/%s_random%s_Train genes total.csv' % (array_folder, save_prefix, i), delimiter=',')
-            randnts_s = np.loadtxt('%s/%s_random%s_Train NTS total.csv' % (array_folder, save_prefix, i), delimiter=',')
+            randg_s = np.loadtxt('%s/%s%s_random_Genes total_error.csv' % (array_folder, save_prefix, i), delimiter=',')
+            randnts_s = np.loadtxt('%s/%s%s_random_NTS total_error.csv' % (array_folder, save_prefix, i), delimiter=',')
 
-            if 'size' not in title_biotype.lower():
+            if 'size' not in title_biotype.lower() and 'slam' not in title_biotype.lower():
                 randigr = np.loadtxt(
-                    '%s/%s_random%s_Train intergenic regions.csv' % (array_folder, save_prefix, i),
+                    '%s/%s%s_random_Intergenic regions_error.csv' % (array_folder, save_prefix, i),
                     delimiter=','
                 )
                 rand_igr = np.append(rand_igr, randigr)
         else:
-            if not os.path.isfile('%s/%s_random%s_Train genes start.csv' % (array_folder, save_prefix, i)):
+            if not os.path.isfile('%s/%s%s_random_Genes start_error.csv' % (array_folder, save_prefix, i)):
                 break
-            randg_s = np.loadtxt('%s/%s_random%s_Train genes start.csv' % (array_folder, save_prefix, i), delimiter=',')
-            randg_c = np.loadtxt('%s/%s_random%s_Train genes centre.csv' % (array_folder, save_prefix, i), delimiter=',')
-            randg_e = np.loadtxt('%s/%s_random%s_Train genes end.csv' % (array_folder, save_prefix, i), delimiter=',')
+            randg_s = np.loadtxt('%s/%s%s_random_Genes start_error.csv' % (array_folder, save_prefix, i), delimiter=',')
+            randg_c = np.loadtxt('%s/%s%s_random_Genes centre_error.csv' % (array_folder, save_prefix, i), delimiter=',')
+            randg_e = np.loadtxt('%s/%s%s_random_Genes end_error.csv' % (array_folder, save_prefix, i), delimiter=',')
 
-            randnts_s = np.loadtxt('%s/%s_random%s_Train NTS start.csv' % (array_folder, save_prefix, i), delimiter=',')
-            randnts_c = np.loadtxt('%s/%s_random%s_Train NTS centre.csv' % (array_folder, save_prefix, i), delimiter=',')
-            randnts_e = np.loadtxt('%s/%s_random%s_Train NTS end.csv' % (array_folder, save_prefix, i), delimiter=',')
+            randnts_s = np.loadtxt('%s/%s%s_random_NTS start_error.csv' % (array_folder, save_prefix, i), delimiter=',')
+            randnts_c = np.loadtxt('%s/%s%s_random_NTS centre_error.csv' % (array_folder, save_prefix, i), delimiter=',')
+            randnts_e = np.loadtxt('%s/%s%s_random_NTS end_error.csv' % (array_folder, save_prefix, i), delimiter=',')
 
-            if 'size' not in title_biotype.lower():
+            if 'size' not in title_biotype.lower() and 'slam' not in title_biotype.lower():
                 randigr = np.loadtxt(
-                    '%s/%s_random%s_Train intergenic regions.csv' % (array_folder, save_prefix, i),
+                    '%s/%s%s_random_Intergenic regions_error.csv' % (array_folder, save_prefix, i),
                     delimiter=','
                 )
                 rand_igr = np.append(rand_igr, randigr)
@@ -118,11 +135,22 @@ def main(args):
         rand_gene_s = np.append(rand_gene_s, randg_s)
         rand_nts_s = np.append(rand_nts_s, randnts_s)
 
+    if 'gp' in save_prefix:
+        rand_gene_s = trim_data(rand_gene_s, rm_percentile=rm_percentile)
+        rand_nts_s = trim_data(rand_nts_s, rm_percentile=rm_percentile)
+        if 'size' not in title_biotype.lower() and 'slam' not in title_biotype.lower():
+            rand_igr = trim_data(rand_igr, rm_percentile=rm_percentile)
+        if 'each' in save_prefix:
+            rand_gene_c = trim_data(rand_gene_c, rm_percentile=rm_percentile)
+            rand_gene_e = trim_data(rand_gene_e, rm_percentile=rm_percentile)
+            rand_nts_c = trim_data(rand_nts_c, rm_percentile=rm_percentile)
+            rand_nts_e = trim_data(rand_nts_e, rm_percentile=rm_percentile)
+
     palette = sns.color_palette()
     custom_lines = [Line2D([0], [0], color=palette[0], lw=4),
                     Line2D([0], [0], color=palette[-2], lw=4)]
     plt.figure(figsize=(8, 7))
-    if 'size' not in title_biotype.lower():
+    if 'size' not in title_biotype.lower() and 'slam' not in title_biotype.lower():
         if 'total' in save_prefix:
             data = [
                 gene_s, rand_gene_s,
