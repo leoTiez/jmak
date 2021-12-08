@@ -297,12 +297,12 @@ def main(args):
             save_fig=save_fig,
             save_prefix='%s_test' % save_prefix
         )
-        error = ml.error(real_data=testd[mask], est_mean=mean_pred, is_regression=not ml.discretise_bio)
+
         if save_fig:
             directory = validate_dir('arrays')
             np.savetxt(
                 '%s/%s_%s_error.csv' % (directory, save_prefix, ml.rmodel.name),
-                error,
+                (mean_pred - testd[mask])**2,
                 delimiter=','
             )
 
