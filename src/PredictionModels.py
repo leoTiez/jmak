@@ -86,7 +86,7 @@ class ParameterMap(ABC):
             self.bio_bins = frequency_bins(self.all_bio_data, num_bins)
             # Increase border of last bin to include last data point
             self.bio_bins[-1] += .1
-            self.all_bio_data = self.discretise(self.all_bio_data)
+            self.all_bio_data = np.digitize(self.all_bio_data, self.bio_bins).astype('int') - 1
 
         self.data_params, self.data_params_val, self.bio_data, self.bio_data_val = None, None, None, None
         self.reshuffle()
