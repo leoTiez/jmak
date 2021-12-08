@@ -122,7 +122,7 @@ def convert_bio_data(
     return trans_bio, igr_bio
 
 
-def main_nucl(args):
+def main(args):
     bio_type = args.bio_type
     bio_index = args.bio_index
     ml_type = args.ml_type
@@ -195,14 +195,19 @@ def main_nucl(args):
 
         rm.models = [model for num, model in enumerate(rm.models) if mask[num]]
         if load_if_exist:
-            mfile_name = ''
             path = '%s/models' % os.getcwd()
             mfile_name = '%s/%s_%s_pickle_file_%s.pkl' % (path, save_prefix, rm.name, ml_type)
             if os.path.isfile(mfile_name):
                 if verbosity > 0:
                     print('Found model file. Load model.')
-                b_model = pickle.load(open(mfile_name, 'rb'))
-                ml_models.append(b_model)
+                try:
+                    pfile = open(mfile_name, 'rb')
+                    b_model = pickle.load(pfile)
+                    ml_models.append(b_model)
+                    pfile.close()
+                    continue
+                except:
+                    pass
             else:
                 if verbosity > 0:
                     print('Could not find existing ml file. Create new ml object.')
@@ -292,16 +297,17 @@ def main_nucl(args):
             save_fig=save_fig,
             save_prefix='%s_test' % save_prefix
         )
+        error = ml.error(real_data=testd[mask], est_mean=mean_pred, is_regression=not ml.discretise_bio)
         if save_fig:
             directory = validate_dir('arrays')
             np.savetxt(
                 '%s/%s_%s_error.csv' % (directory, save_prefix, ml.rmodel.name),
-                (mean_pred - testd)**2,
+                error,
                 delimiter=','
             )
 
 
 if __name__ == '__main__':
     args = argparse_predict(sys.argv[1:])
-    main_nucl(args)
+    main(args)
 
