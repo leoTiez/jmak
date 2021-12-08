@@ -235,6 +235,11 @@ class ParameterMap(ABC):
             directory = validate_dir('figures/predict_models')
             plt.savefig('%s/%s_%s_error_distribution.png' % (directory, save_prefix, self.rmodel.name))
             plt.close('all')
+
+            array_dir = validate_dir('arrays')
+            error_file = open('%s/%s_%s_error.txt' % (array_dir, save_prefix, self.rmodel.name), 'a+')
+            error_file.write('%.3f' % error)
+            error_file.close()
         else:
             plt.show()
 
