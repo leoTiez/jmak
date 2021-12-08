@@ -119,7 +119,7 @@ def main():
                               '--num_classes=%s '
                               '--kneighbour=%s '
                               '%s '
-                              '--save_prefix=%s_lin_%s%s '
+                              '--save_prefix=%s_knn%s_%s%s '
                               '--save_fig '
                               '--to_pickle '
                               '--num_cpus=1 '
@@ -132,6 +132,7 @@ def main():
                                   kneighbour,
                                   '--do_each' if do_each else '',
                                   bt,
+                                  kneighbour,
                                   'each' if do_each else 'total',
                                   i
                               ), ))
@@ -144,7 +145,7 @@ def main():
                               '--kneighbour=%s '
                               '%s '
                               '--neg_random '
-                              '--save_prefix=%s_lin_%s%s_random '
+                              '--save_prefix=%s_knn%s_%s%s_random '
                               '--save_fig '
                               '--to_pickle '
                               '--num_cpus=1 '
@@ -157,6 +158,7 @@ def main():
                                   kneighbour,
                                   '--do_each' if do_each else '',
                                   bt,
+                                  kneighbour,
                                   'each' if do_each else 'total',
                                   i
                               ), ))
