@@ -8,6 +8,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import mpl_toolkits.axisartist as AA
 import matplotlib.colors as cls
+import sklearn.exceptions
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 import statsmodels.api as smapi
@@ -274,7 +275,13 @@ class GPParameterMap(ParameterMap):
         self.gpr = GaussianProcessRegressor(kernel=RBF() + WhiteKernel(), random_state=random_state)
 
     def learn(self, verbosity=0):
-        self.gpr.fit(self.data_params, self.bio_data)
+        with warnings.catch_warnings():
+            warnings.filterwarnings('error')
+            try:
+                self.gpr.fit(self.data_params, self.bio_data)
+            except sklearn.exceptions.ConvergenceWarning:
+                print('%s GP raised a convergence warning, indicating that the data is understood to be mere noise.\n%s'
+                      % (self.rmodel.name, sklearn.exceptions.ConvergenceWarning))
         if verbosity > 0:
             print('R2: %.3f' % self.gpr.score(self.data_params, self.bio_data))
 
