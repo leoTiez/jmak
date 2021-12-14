@@ -90,68 +90,19 @@ def main(args):
     heatmap_color_igr = 'Blues'
     verbosity = args.verbosity
     save_fig = args.save_fig
+    no_tcr = args.no_tcr
+    used_transcriptoms = [True, False, False] if not no_tcr else [True, True, True]
+    num_bins = 3 if not no_tcr else 1
 
-    train_data = load_chrom_data(chrom_list=chrom_list)
+    train_data = load_chrom_data(chrom_list=chrom_list, used_transcriptomes=used_transcriptoms, num_trans_bins=num_bins)
     (trans, ntrans, igr, igr_start, igr_end, transcriptome) = train_data
 
     # Transcripts
-    if args.do_each:
-        create_model(
-            trans[:, :, 0],
-            1,
-            'Genes start',
-            min_f=min_f_trans,
-            max_f=max_f,
-            delta_f=delta_f,
-            jmak_name_list=list(map(
-                lambda x: '%s %s' % (x[0], x[1]),
-                zip(transcriptome['chr'].to_list(), transcriptome['ORF'].to_list())
-            )),
-            heatmap_color=heatmap_color_trans,
-            num_cpus=num_cpus,
-            verbosity=verbosity,
-            save_fig=save_fig,
-            save_name='trans_start'
-        )
-        create_model(
-            trans[:, :, 1],
-            1,
-            'Genes centre',
-            min_f=min_f_trans,
-            max_f=max_f,
-            delta_f=delta_f,
-            jmak_name_list=list(map(
-                lambda x: '%s %s' % (x[0], x[1]),
-                zip(transcriptome['chr'].to_list(), transcriptome['ORF'].to_list())
-            )),
-            heatmap_color=heatmap_color_trans,
-            num_cpus=num_cpus,
-            verbosity=verbosity,
-            save_fig=save_fig,
-            save_name='trans_centre'
-        )
-        create_model(
-            trans[:, :, 2],
-            1,
-            'Genes end',
-            min_f=min_f_trans,
-            max_f=max_f,
-            delta_f=delta_f,
-            jmak_name_list=list(map(
-                lambda x: '%s %s' % (x[0], x[1]),
-                zip(transcriptome['chr'].to_list(), transcriptome['ORF'].to_list())
-            )),
-            heatmap_color=heatmap_color_trans,
-            num_cpus=num_cpus,
-            verbosity=verbosity,
-            save_fig=save_fig,
-            save_name='trans_end'
-        )
-    else:
+    if no_tcr:
         create_model(
             trans,
-            3,
-            'Genes total',
+            1,
+            'All Genes',
             min_f=min_f_trans,
             max_f=max_f,
             delta_f=delta_f,
@@ -163,97 +114,219 @@ def main(args):
             num_cpus=num_cpus,
             verbosity=verbosity,
             save_fig=save_fig,
-            save_name='trans_total'
+            save_name='all_trans'
         )
-    # NTS
-    if args.do_each:
-        create_model(
-            ntrans[:, :, 0],
-            1,
-            'NTS start',
-            min_f=min_f_igr,
-            max_f=max_f,
-            delta_f=delta_f,
-            jmak_name_list=list(map(
-                lambda x: '%s %s' % (x[0], x[1]),
-                zip(transcriptome['chr'].to_list(), transcriptome['ORF'].to_list())
-            )),
-            heatmap_color=heatmap_color_ntrans,
-            num_cpus=num_cpus,
-            verbosity=verbosity,
-            save_fig=save_fig,
-            save_name='ntrans_start'
-        )
-        create_model(
-            ntrans[:, :, 1],
-            1,
-            'NTS centre',
-            min_f=min_f_igr,
-            max_f=max_f,
-            delta_f=delta_f,
-            jmak_name_list=list(map(
-                lambda x: '%s %s' % (x[0], x[1]),
-                zip(transcriptome['chr'].to_list(), transcriptome['ORF'].to_list())
-            )),
-            heatmap_color=heatmap_color_ntrans,
-            num_cpus=num_cpus,
-            verbosity=verbosity,
-            save_fig=save_fig,
-            save_name='ntrans_centre'
-        )
-        create_model(
-            ntrans[:, :, 2],
-            1,
-            'NTS end',
-            min_f=min_f_igr,
-            max_f=max_f,
-            delta_f=delta_f,
-            jmak_name_list=list(map(
-                lambda x: '%s %s' % (x[0], x[1]),
-                zip(transcriptome['chr'].to_list(), transcriptome['ORF'].to_list())
-            )),
-            heatmap_color=heatmap_color_ntrans,
-            num_cpus=num_cpus,
-            verbosity=verbosity,
-            save_fig=save_fig,
-            save_name='ntrans_end'
-        )
-    else:
         create_model(
             ntrans,
-            3,
-            'NTS total',
-            min_f=min_f_igr,
+            1,
+            'All NTS',
+            min_f=min_f_trans,
             max_f=max_f,
             delta_f=delta_f,
             jmak_name_list=list(map(
                 lambda x: '%s %s' % (x[0], x[1]),
                 zip(transcriptome['chr'].to_list(), transcriptome['ORF'].to_list())
             )),
-            heatmap_color=heatmap_color_ntrans,
+            heatmap_color=heatmap_color_trans,
             num_cpus=num_cpus,
             verbosity=verbosity,
             save_fig=save_fig,
-            save_name='ntrans_total'
+            save_name='all_trans'
         )
-    # Intergenic
-    create_model(
-        igr,
-        2,
-        'Intergenic regions',
-        min_f=min_f_igr,
-        max_f=max_f,
-        delta_f=delta_f,
-        jmak_name_list=list(map(
-                lambda x: '%s %s' % (x[0][0], x[1]),
-                zip(igr_start, range(len(igr_start)))
-            )),
-        heatmap_color=heatmap_color_igr,
-        num_cpus=num_cpus,
-        verbosity=verbosity,
-        save_fig=save_fig,
-        save_name='igr'
-    )
+        create_model(
+            igr[:, :, 0],
+            1,
+            'IGR Strand +',
+            min_f=min_f_igr,
+            max_f=max_f,
+            delta_f=delta_f,
+            jmak_name_list=list(map(
+                    lambda x: '%s %s' % (x[0][0], x[1]),
+                    zip(igr_start, range(len(igr_start)))
+                )),
+            heatmap_color=heatmap_color_trans,
+            num_cpus=num_cpus,
+            verbosity=verbosity,
+            save_fig=save_fig,
+            save_name='igr_plus'
+        )
+        create_model(
+            igr[:, :, 1],
+            1,
+            'IGR Strand -',
+            min_f=min_f_igr,
+            max_f=max_f,
+            delta_f=delta_f,
+            jmak_name_list=list(map(
+                    lambda x: '%s %s' % (x[0][0], x[1]),
+                    zip(igr_start, range(len(igr_start)))
+                )),
+            heatmap_color=heatmap_color_trans,
+            num_cpus=num_cpus,
+            verbosity=verbosity,
+            save_fig=save_fig,
+            save_name='igr_minus'
+        )
+    else:
+        if args.do_each:
+            create_model(
+                trans[:, :, 0],
+                1,
+                'Genes start',
+                min_f=min_f_trans,
+                max_f=max_f,
+                delta_f=delta_f,
+                jmak_name_list=list(map(
+                    lambda x: '%s %s' % (x[0], x[1]),
+                    zip(transcriptome['chr'].to_list(), transcriptome['ORF'].to_list())
+                )),
+                heatmap_color=heatmap_color_trans,
+                num_cpus=num_cpus,
+                verbosity=verbosity,
+                save_fig=save_fig,
+                save_name='trans_start'
+            )
+            create_model(
+                trans[:, :, 1],
+                1,
+                'Genes centre',
+                min_f=min_f_trans,
+                max_f=max_f,
+                delta_f=delta_f,
+                jmak_name_list=list(map(
+                    lambda x: '%s %s' % (x[0], x[1]),
+                    zip(transcriptome['chr'].to_list(), transcriptome['ORF'].to_list())
+                )),
+                heatmap_color=heatmap_color_trans,
+                num_cpus=num_cpus,
+                verbosity=verbosity,
+                save_fig=save_fig,
+                save_name='trans_centre'
+            )
+            create_model(
+                trans[:, :, 2],
+                1,
+                'Genes end',
+                min_f=min_f_trans,
+                max_f=max_f,
+                delta_f=delta_f,
+                jmak_name_list=list(map(
+                    lambda x: '%s %s' % (x[0], x[1]),
+                    zip(transcriptome['chr'].to_list(), transcriptome['ORF'].to_list())
+                )),
+                heatmap_color=heatmap_color_trans,
+                num_cpus=num_cpus,
+                verbosity=verbosity,
+                save_fig=save_fig,
+                save_name='trans_end'
+            )
+        else:
+            create_model(
+                trans,
+                3,
+                'Genes total',
+                min_f=min_f_trans,
+                max_f=max_f,
+                delta_f=delta_f,
+                jmak_name_list=list(map(
+                    lambda x: '%s %s' % (x[0], x[1]),
+                    zip(transcriptome['chr'].to_list(), transcriptome['ORF'].to_list())
+                )),
+                heatmap_color=heatmap_color_trans,
+                num_cpus=num_cpus,
+                verbosity=verbosity,
+                save_fig=save_fig,
+                save_name='trans_total'
+            )
+        # NTS
+        if args.do_each:
+            create_model(
+                ntrans[:, :, 0],
+                1,
+                'NTS start',
+                min_f=min_f_igr,
+                max_f=max_f,
+                delta_f=delta_f,
+                jmak_name_list=list(map(
+                    lambda x: '%s %s' % (x[0], x[1]),
+                    zip(transcriptome['chr'].to_list(), transcriptome['ORF'].to_list())
+                )),
+                heatmap_color=heatmap_color_ntrans,
+                num_cpus=num_cpus,
+                verbosity=verbosity,
+                save_fig=save_fig,
+                save_name='ntrans_start'
+            )
+            create_model(
+                ntrans[:, :, 1],
+                1,
+                'NTS centre',
+                min_f=min_f_igr,
+                max_f=max_f,
+                delta_f=delta_f,
+                jmak_name_list=list(map(
+                    lambda x: '%s %s' % (x[0], x[1]),
+                    zip(transcriptome['chr'].to_list(), transcriptome['ORF'].to_list())
+                )),
+                heatmap_color=heatmap_color_ntrans,
+                num_cpus=num_cpus,
+                verbosity=verbosity,
+                save_fig=save_fig,
+                save_name='ntrans_centre'
+            )
+            create_model(
+                ntrans[:, :, 2],
+                1,
+                'NTS end',
+                min_f=min_f_igr,
+                max_f=max_f,
+                delta_f=delta_f,
+                jmak_name_list=list(map(
+                    lambda x: '%s %s' % (x[0], x[1]),
+                    zip(transcriptome['chr'].to_list(), transcriptome['ORF'].to_list())
+                )),
+                heatmap_color=heatmap_color_ntrans,
+                num_cpus=num_cpus,
+                verbosity=verbosity,
+                save_fig=save_fig,
+                save_name='ntrans_end'
+            )
+        else:
+            create_model(
+                ntrans,
+                3,
+                'NTS total',
+                min_f=min_f_igr,
+                max_f=max_f,
+                delta_f=delta_f,
+                jmak_name_list=list(map(
+                    lambda x: '%s %s' % (x[0], x[1]),
+                    zip(transcriptome['chr'].to_list(), transcriptome['ORF'].to_list())
+                )),
+                heatmap_color=heatmap_color_ntrans,
+                num_cpus=num_cpus,
+                verbosity=verbosity,
+                save_fig=save_fig,
+                save_name='ntrans_total'
+            )
+        # Intergenic
+        create_model(
+            igr,
+            2,
+            'Intergenic regions',
+            min_f=min_f_igr,
+            max_f=max_f,
+            delta_f=delta_f,
+            jmak_name_list=list(map(
+                    lambda x: '%s %s' % (x[0][0], x[1]),
+                    zip(igr_start, range(len(igr_start)))
+                )),
+            heatmap_color=heatmap_color_igr,
+            num_cpus=num_cpus,
+            verbosity=verbosity,
+            save_fig=save_fig,
+            save_name='igr'
+        )
 
 
 if __name__ == '__main__':
