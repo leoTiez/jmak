@@ -159,6 +159,7 @@ def normalise_data(trans, chrom, data, ref_genome, num_bins=3):
         rel_20m = np.maximum(0, rel_20m)
         rel_1h = np.maximum(rel_20m, rel_1h)
         rel_2h = np.minimum(np.maximum(rel_1h, rel_2h), 1)
+
         return rel_20m, rel_1h, rel_2h
 
     def get_start_end_intergenic(intergenic_mask, borders):
