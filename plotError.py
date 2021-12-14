@@ -35,33 +35,33 @@ def main(args):
     while True and i < max_iter:
         i += 1
         if 'total' in save_prefix:
-            if not os.path.isfile('%s/%s%s_Genes total_error.csv' % (array_folder, save_prefix, i)):
-                break
+            if not os.path.isfile('%s/%s%s_test_Genes total_error.txt' % (array_folder, save_prefix, i)):
+                continue
 
-            gs = np.loadtxt('%s/%s%s_Genes total_error.csv' % (array_folder, save_prefix, i), delimiter=',')
-            ntss = np.loadtxt('%s/%s%s_NTS total_error.csv' % (array_folder, save_prefix, i), delimiter=',')
+            gs = np.loadtxt('%s/%s%s_test_Genes total_error.txt' % (array_folder, save_prefix, i), delimiter=',')
+            ntss = np.loadtxt('%s/%s%s_test_NTS total_error.txt' % (array_folder, save_prefix, i), delimiter=',')
 
             if 'size' not in title_biotype.lower() and 'slam' not in title_biotype.lower():
                 intergen = np.loadtxt(
-                    '%s/%s%s_Intergenic regions_error.csv' % (array_folder, save_prefix, i),
+                    '%s/%s%s_test_Intergenic regions_error.txt' % (array_folder, save_prefix, i),
                     delimiter=','
                 )
                 igr = np.append(igr, intergen)
 
         else:
-            if not os.path.isfile('%s/%s%s_Genes start_error.csv' % (array_folder, save_prefix, i)):
-                break
-            gs = np.loadtxt('%s/%s%s_Genes start_error.csv' % (array_folder, save_prefix, i), delimiter=',')
-            gc = np.loadtxt('%s/%s%s_Genes centre_error.csv' % (array_folder, save_prefix, i), delimiter=',')
-            ge = np.loadtxt('%s/%s%s_Genes end_error.csv' % (array_folder, save_prefix, i), delimiter=',')
+            if not os.path.isfile('%s/%s%s_test_Genes start_error.txt' % (array_folder, save_prefix, i)):
+                continue
+            gs = np.loadtxt('%s/%s%s_test_Genes start_error.txt' % (array_folder, save_prefix, i), delimiter=',')
+            gc = np.loadtxt('%s/%s%s_test_Genes centre_error.txt' % (array_folder, save_prefix, i), delimiter=',')
+            ge = np.loadtxt('%s/%s%s_test_Genes end_error.txt' % (array_folder, save_prefix, i), delimiter=',')
 
-            ntss = np.loadtxt('%s/%s%s_NTS start_error.csv' % (array_folder, save_prefix, i), delimiter=',')
-            ntsc = np.loadtxt('%s/%s%s_NTS centre_error.csv' % (array_folder, save_prefix, i), delimiter=',')
-            ntse = np.loadtxt('%s/%s%s_NTS end_error.csv' % (array_folder, save_prefix, i), delimiter=',')
+            ntss = np.loadtxt('%s/%s%s_test_NTS start_error.txt' % (array_folder, save_prefix, i), delimiter=',')
+            ntsc = np.loadtxt('%s/%s%s_test_NTS centre_error.txt' % (array_folder, save_prefix, i), delimiter=',')
+            ntse = np.loadtxt('%s/%s%s_test_NTS end_error.txt' % (array_folder, save_prefix, i), delimiter=',')
 
             if 'size' not in title_biotype.lower() and 'slam' not in title_biotype.lower():
                 intergen = np.loadtxt(
-                    '%s/%s%s_Intergenic regions_error.csv' % (array_folder, save_prefix, i),
+                    '%s/%s%s_test_Intergenic regions_error.txt' % (array_folder, save_prefix, i),
                     delimiter=','
                 )
                 igr = np.append(igr, intergen)
@@ -98,32 +98,32 @@ def main(args):
     while True and i < max_iter:
         i += 1
         if 'total' in save_prefix:
-            if not os.path.isfile('%s/%s%s_random_Genes total_error.csv' % (array_folder, save_prefix, i)):
-                break
+            if not os.path.isfile('%s/%s%s_random_test_Genes total_error.txt' % (array_folder, save_prefix, i)):
+                continue
 
-            randg_s = np.loadtxt('%s/%s%s_random_Genes total_error.csv' % (array_folder, save_prefix, i), delimiter=',')
-            randnts_s = np.loadtxt('%s/%s%s_random_NTS total_error.csv' % (array_folder, save_prefix, i), delimiter=',')
+            randg_s = np.loadtxt('%s/%s%s_random_test_Genes total_error.txt' % (array_folder, save_prefix, i), delimiter=',')
+            randnts_s = np.loadtxt('%s/%s%s_random_test_NTS total_error.txt' % (array_folder, save_prefix, i), delimiter=',')
 
             if 'size' not in title_biotype.lower() and 'slam' not in title_biotype.lower():
                 randigr = np.loadtxt(
-                    '%s/%s%s_random_Intergenic regions_error.csv' % (array_folder, save_prefix, i),
+                    '%s/%s%s_random_test_Intergenic regions_error.txt' % (array_folder, save_prefix, i),
                     delimiter=','
                 )
                 rand_igr = np.append(rand_igr, randigr)
         else:
-            if not os.path.isfile('%s/%s%s_random_Genes start_error.csv' % (array_folder, save_prefix, i)):
-                break
-            randg_s = np.loadtxt('%s/%s%s_random_Genes start_error.csv' % (array_folder, save_prefix, i), delimiter=',')
-            randg_c = np.loadtxt('%s/%s%s_random_Genes centre_error.csv' % (array_folder, save_prefix, i), delimiter=',')
-            randg_e = np.loadtxt('%s/%s%s_random_Genes end_error.csv' % (array_folder, save_prefix, i), delimiter=',')
+            if not os.path.isfile('%s/%s%s_random_test_Genes start_error.txt' % (array_folder, save_prefix, i)):
+                continue
+            randg_s = np.loadtxt('%s/%s%s_random_test_Genes start_error.txt' % (array_folder, save_prefix, i), delimiter=',')
+            randg_c = np.loadtxt('%s/%s%s_random_test_Genes centre_error.txt' % (array_folder, save_prefix, i), delimiter=',')
+            randg_e = np.loadtxt('%s/%s%s_random_test_Genes end_error.txt' % (array_folder, save_prefix, i), delimiter=',')
 
-            randnts_s = np.loadtxt('%s/%s%s_random_NTS start_error.csv' % (array_folder, save_prefix, i), delimiter=',')
-            randnts_c = np.loadtxt('%s/%s%s_random_NTS centre_error.csv' % (array_folder, save_prefix, i), delimiter=',')
-            randnts_e = np.loadtxt('%s/%s%s_random_NTS end_error.csv' % (array_folder, save_prefix, i), delimiter=',')
+            randnts_s = np.loadtxt('%s/%s%s_random_test_NTS start_error.txt' % (array_folder, save_prefix, i), delimiter=',')
+            randnts_c = np.loadtxt('%s/%s%s_random_test_NTS centre_error.txt' % (array_folder, save_prefix, i), delimiter=',')
+            randnts_e = np.loadtxt('%s/%s%s_random_test_NTS end_error.txt' % (array_folder, save_prefix, i), delimiter=',')
 
             if 'size' not in title_biotype.lower() and 'slam' not in title_biotype.lower():
                 randigr = np.loadtxt(
-                    '%s/%s%s_random_Intergenic regions_error.csv' % (array_folder, save_prefix, i),
+                    '%s/%s%s_random_test_Intergenic regions_error.txt' % (array_folder, save_prefix, i),
                     delimiter=','
                 )
                 rand_igr = np.append(rand_igr, randigr)
@@ -209,10 +209,15 @@ def main(args):
             ]
             xticks = [.5, 2.5, 4.5, 6.5, 8.5, 10.5]
             xtick_handles = ['Gene s', 'Gene c', 'Gene e', 'NTS s', 'NTS c', 'NTS e']
-    sns.violinplot(data=data, palette=palette)
+    ax = sns.violinplot(data=data, palette=palette)
+    plt.setp(ax.collections, alpha=.1)
+    sns.stripplot(data=data, palette=palette)
+
     plt.xticks(xticks, xtick_handles)
     plt.title('Error distribution %s' % title_biotype)
     plt.legend(custom_lines, ['Original', 'Random'])
+    if 'gp' not in save_prefix.lower():
+        plt.ylim((0, 1))
 
     if save_fig:
         directory = validate_dir('figures/total_error_dist')
