@@ -240,6 +240,7 @@ def load_chrom_data(
             'data/ref/trans_low.txt',
         ],
         used_transcriptomes=[True, False, False],
+        num_trans_bins=3,
         ref_genome_path='data/ref/SacCer3.fa',
         shuffle_data=False,
 ):
@@ -254,7 +255,7 @@ def load_chrom_data(
             (
                 (t_20, t_60, t_120, nt_20, nt_60, nt_120, igr_20, igr_60, igr_120),
                 (start_igr, end_igr)
-            ) = normalise_data(transcriptome_chrom, chrom, chrom_data, ref_genome)
+            ) = normalise_data(transcriptome_chrom, chrom, chrom_data, ref_genome, num_bins=num_trans_bins)
             trans.extend([t_20, t_60, t_120])
             non_trans.extend([nt_20, nt_60, nt_120])
             igr.extend([igr_20, igr_60, igr_120])
