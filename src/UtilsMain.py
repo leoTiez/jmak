@@ -103,6 +103,8 @@ def argparse_jmak_param(arguments):
                         help='If set, figures are saved instead of displayed.')
     parser.add_argument('--test', action='store_true', dest='test',
                         help='Run test function for debugging.')
+    parser.add_argument('--no_tcr', action='store_true', dest='no_tcr',
+                        help='If set, programme does not distinguish between TCR and rest.')
 
     parsed_args = parser.parse_args(arguments)
     return parsed_args
