@@ -4,9 +4,9 @@ from src.Model import RegionModel
 from src.DataLoader import create_time_data
 
 
-def create_models(data, do_each=True):
+def create_models(data, do_each=True, no_tcr=False):
     (trans, ntrans, igr, start_igr, _, transcriptome) = data
-    if do_each:
+    if do_each and not no_tcr:
         iter = zip(
             [
                 trans[:, :, 0],
@@ -36,7 +36,7 @@ def create_models(data, do_each=True):
                 'data/jmak/igr.csv'
             ]
         )
-    else:
+    elif not do_each and not no_tcr:
         iter = zip(
             [
                 trans,
@@ -54,16 +54,36 @@ def create_models(data, do_each=True):
                 'data/jmak/igr.csv'
             ]
         )
-
+    else:
+        iter = zip(
+            [
+                trans,
+                trans,
+                igr[:, :, 0],
+                igr[:, :, 1]
+            ],
+            [
+                'All Genes',
+                'All NTS',
+                'IGR Strand +',
+                'IGR Strand -',
+            ],
+            [
+                'data/jmak/all_trans.csv',
+                'data/jmak/all_ntrans.csv',
+                'data/jmak/igr_plus.csv',
+                'data/jmak/igr_minus.csv'
+            ]
+        )
     model_list = []
     for data, name, file_name in iter:
         if 'trans' in file_name.lower():
             chrom_list = transcriptome['chr'].to_list()
         else:
             chrom_list = map(lambda x: x[0], start_igr)
-        if not do_each and 'trans' in file_name:
+        if not do_each and 'trans' in file_name and not no_tcr:
             num_pos = 3
-        elif 'igr' in file_name:
+        elif 'igr' in file_name and not no_tcr:
             num_pos = 2
         else:
             num_pos = 1
@@ -193,6 +213,8 @@ def argparse_predict(arguments):
                         help='Determines the number of created classes if --classify flag is set.')
     parser.add_argument('--kneighbour', type=int, default=10,
                         help='Number of neighbour in kNN machine learning model')
+    parser.add_argument('--no_tcr', action='store_true', dest='no_tcr',
+                        help='If set, programme does not distinguish between TCR and rest.')
 
     parsed_args = parser.parse_args(arguments)
     return parsed_args
