@@ -131,7 +131,7 @@ def main(args):
             num_cpus=num_cpus,
             verbosity=verbosity,
             save_fig=save_fig,
-            save_name='all_trans'
+            save_name='all_ntrans'
         )
         create_model(
             igr[:, :, 0],
