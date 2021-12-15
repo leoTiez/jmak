@@ -138,14 +138,17 @@ def main(args):
     neg_random = args.neg_random
     num_classes = args.num_classes
     k_neighbours = args.kneighbour
+    no_tcr = args.no_tcr
+    used_transcriptoms = [True, False, False] if not no_tcr else [True, True, True]
+    num_bins = 3 if not no_tcr else 1
     test_ratio = .3
 
     if verbosity > 0:
         print('Load CPD')
     chrom_list = load_chrom_split()
 
-    data = load_chrom_data(chrom_list=chrom_list)
-    region_model_list = create_models(data, do_each=do_each)
+    data = load_chrom_data(chrom_list=chrom_list, used_transcriptomes=used_transcriptoms, num_trans_bins=num_bins)
+    region_model_list = create_models(data, do_each=do_each, no_tcr=no_tcr)
 
     (_, _, _, start_igr, end_igr, transcriptome) = data
 
