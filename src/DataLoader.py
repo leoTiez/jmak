@@ -42,7 +42,7 @@ def load_meres(identifier='centromeres', path=None):
             names=['chr', 'start', 'end', 'name', 'score', 'strand']
         )
     elif identifier == 'telomeres':
-        path = path if path is not None else 'data/ref/centromeres.bed'
+        path = path if path is not None else 'data/ref/telomeres.bed'
         telomeres_path = transform_path(path)
         meres = pd.read_csv(
             telomeres_path,
