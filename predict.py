@@ -195,7 +195,7 @@ def main(args):
         print('Learn models')
         if neg_random:
             print('Randomise model')
-    if verbosity > 1:
+    if verbosity > 4:
         if not no_tcr:
             if bio_type.lower() not in ['size', 'slam']:
                 if do_each:
