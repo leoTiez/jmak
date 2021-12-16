@@ -31,21 +31,37 @@ def main(args):
     nts_e = np.empty(0)
 
     igr = np.empty(0)
+    igr_minus = np.empty(0)
     i = 0
     while True and i < max_iter:
         i += 1
-        if 'total' in save_prefix:
-            if not os.path.isfile('%s/%s%s_test_Genes total_error.txt' % (array_folder, save_prefix, i)):
+        if 'total' in save_prefix or 'no_tcr' in save_prefix:
+            if not os.path.isfile('%s/%s%s_test_Genes total_error.txt' % (array_folder, save_prefix, i)) \
+                    and not os.path.isfile('%s/%s%s_test_All Genes_error.txt' % (array_folder, save_prefix, i)):
                 continue
 
-            gs = np.loadtxt('%s/%s%s_test_Genes total_error.txt' % (array_folder, save_prefix, i), delimiter=',')
-            ntss = np.loadtxt('%s/%s%s_test_NTS total_error.txt' % (array_folder, save_prefix, i), delimiter=',')
-
+            if 'total' in save_prefix:
+                gs = np.loadtxt('%s/%s%s_test_Genes total_error.txt' % (array_folder, save_prefix, i), delimiter=',')
+                ntss = np.loadtxt('%s/%s%s_test_NTS total_error.txt' % (array_folder, save_prefix, i), delimiter=',')
+            else:
+                gs = np.loadtxt('%s/%s%s_test_All Genes_error.txt' % (array_folder, save_prefix, i), delimiter=',')
+                ntss = np.loadtxt('%s/%s%s_test_All NTS_error.txt' % (array_folder, save_prefix, i), delimiter=',')
             if 'size' not in title_biotype.lower() and 'slam' not in title_biotype.lower():
-                intergen = np.loadtxt(
-                    '%s/%s%s_test_Intergenic regions_error.txt' % (array_folder, save_prefix, i),
-                    delimiter=','
-                )
+                if 'total' in save_prefix:
+                    intergen = np.loadtxt(
+                        '%s/%s%s_test_Intergenic regions_error.txt' % (array_folder, save_prefix, i),
+                        delimiter=','
+                    )
+                else:
+                    intergen = np.loadtxt(
+                        '%s/%s%s_test_IGR Strand +_error.txt' % (array_folder, save_prefix, i),
+                        delimiter=','
+                    )
+                    intergen_minus = np.loadtxt(
+                        '%s/%s%s_test_IGR Strand -_error.txt' % (array_folder, save_prefix, i),
+                        delimiter=','
+                    )
+                    igr_minus = np.append(igr_minus, intergen_minus)
                 igr = np.append(igr, intergen)
 
         else:
@@ -94,21 +110,54 @@ def main(args):
     rand_nts_e = np.empty(0)
 
     rand_igr = np.empty(0)
+    rand_igr_minus = np.empty(0)
     i = 0
     while True and i < max_iter:
         i += 1
-        if 'total' in save_prefix:
-            if not os.path.isfile('%s/%s%s_random_test_Genes total_error.txt' % (array_folder, save_prefix, i)):
+        if 'total' in save_prefix or 'no_tcr' in save_prefix:
+            if not os.path.isfile('%s/%s%s_random_test_Genes total_error.txt' % (array_folder, save_prefix, i))\
+                    and not os.path.isfile('%s/%s%s_random_test_All NTS_error.txt' % (array_folder, save_prefix, i)):
                 continue
 
-            randg_s = np.loadtxt('%s/%s%s_random_test_Genes total_error.txt' % (array_folder, save_prefix, i), delimiter=',')
-            randnts_s = np.loadtxt('%s/%s%s_random_test_NTS total_error.txt' % (array_folder, save_prefix, i), delimiter=',')
-
-            if 'size' not in title_biotype.lower() and 'slam' not in title_biotype.lower():
-                randigr = np.loadtxt(
-                    '%s/%s%s_random_test_Intergenic regions_error.txt' % (array_folder, save_prefix, i),
+            if 'total' in save_prefix:
+                randg_s = np.loadtxt(
+                    '%s/%s%s_random_test_Genes total_error.txt'
+                    % (array_folder, save_prefix, i),
                     delimiter=','
                 )
+                randnts_s = np.loadtxt(
+                    '%s/%s%s_random_test_NTS total_error.txt'
+                    % (array_folder, save_prefix, i),
+                    delimiter=','
+                )
+            else:
+                randg_s = np.loadtxt(
+                    '%s/%s%s_random_test_All Genes_error.txt'
+                    % (array_folder, save_prefix, i),
+                    delimiter=','
+                )
+                randnts_s = np.loadtxt(
+                    '%s/%s%s_random_test_All NTS_error.txt'
+                    % (array_folder, save_prefix, i),
+                    delimiter=','
+                )
+
+            if 'size' not in title_biotype.lower() and 'slam' not in title_biotype.lower():
+                if 'total' in save_prefix:
+                    randigr = np.loadtxt(
+                        '%s/%s%s_random_test_Intergenic regions_error.txt' % (array_folder, save_prefix, i),
+                        delimiter=','
+                    )
+                else:
+                    randigr = np.loadtxt(
+                        '%s/%s%s_random_test_IGR Strand +_error.txt' % (array_folder, save_prefix, i),
+                        delimiter=','
+                    )
+                    randigr_minus = np.loadtxt(
+                        '%s/%s%s_random_test_IGR Strand -_error.txt' % (array_folder, save_prefix, i),
+                        delimiter=','
+                    )
+                    rand_igr_minus = np.append(rand_igr_minus, randigr_minus)
                 rand_igr = np.append(rand_igr, randigr)
         else:
             if not os.path.isfile('%s/%s%s_random_test_Genes start_error.txt' % (array_folder, save_prefix, i)):
@@ -164,6 +213,21 @@ def main(args):
             ]
             xticks = [.5, 2.5, 4.5]
             xtick_handles = ['Genes', 'NTS', 'IGR']
+        elif 'no_tcr' in save_prefix:
+            data = [
+                gene_s, rand_gene_s,
+                nts_s, rand_nts_s,
+                igr, rand_igr,
+                igr_minus, rand_igr_minus
+            ]
+            palette = [
+                palette[0], palette[-2],
+                palette[0], palette[-2],
+                palette[0], palette[-2],
+                palette[0], palette[-2]
+            ]
+            xticks = [.5, 2.5, 4.5, 6.5]
+            xtick_handles = ['Genes', 'NTS', 'IGR +', 'IGR -']
         else:
             data = [
                 gene_s, rand_gene_s, gene_c, rand_gene_c, gene_e, rand_gene_e,
@@ -183,7 +247,7 @@ def main(args):
             xticks = [.5, 2.5, 4.5, 6.5, 8.5, 10.5, 12.5]
             xtick_handles = ['Gene s', 'Gene c', 'Gene e', 'NTS s', 'NTS c', 'NTS e', 'IGR']
     else:
-        if 'total' in save_prefix:
+        if 'total' in save_prefix or 'no_tcr' in save_prefix:
             data = [
                 gene_s, rand_gene_s,
                 nts_s, rand_nts_s,
