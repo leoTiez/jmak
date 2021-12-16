@@ -9,7 +9,7 @@ import pickle
 
 from src.DataLoader import load_chrom_data, load_chrom_split, load_bio_data, load_meres
 from src.UtilsMain import create_models, argparse_predict
-from src.Utils import validate_dir
+from src.Utils import validate_dir, frequency_bins
 from src.Model import RegionModel
 from src.PredictionModels import GPParameterMap, KNNParameterMap, LinearParameterMap
 
@@ -72,33 +72,33 @@ def convert_bio_data(
     elif bio_type.lower() == 'size':
         trans_bio = np.abs(transcriptome['start'].to_numpy('int') - transcriptome['end'].to_numpy('int'))
 
-    elif bio_type.lower() == 'meres':
+    elif 'meres' in bio_type.lower():
+        split = bio_type.lower().split('_')
+        do_relative = False
+        if len(split) == 2 and split[0] == 'rel':
+            do_relative = True
         c_pos = load_meres('centromeres')
         t_pos = load_meres('telomeres')
-        trans_diff_cen_tel = []
-        trans_chrom_compare = []
+        trans_diff_cen_tel, trans_chrom_compare = [], []
+        igr_diff_cen_tel, igr_chrom_compare = [], []
         for row in c_pos.iterrows():
             chrom = row[1]['chr']
             centromere = row[1]['pos']
-            telomere = t_pos[t_pos['chr'] == chrom]['pos'].values[0]
+            telomere = t_pos[t_pos['chr'] == chrom]['pos'].values
+            if do_relative:
+                denominator = np.maximum(np.abs(centromere - telomere[0]), np.abs(centromere - telomere[1])) / 2.
+
             trans_chrom = transcriptome[transcriptome['chr'] == chrom]
             if len(trans_chrom) > 0:
                 centre = ((trans_chrom['start'] + trans_chrom['end']) / 2.).to_numpy('float')
-                trans_diff_cen_tel.extend(
-                    np.minimum(np.abs(centre - centromere), np.abs(centre - telomere))
+                distance = np.minimum(
+                    np.minimum(np.abs(centre - centromere), np.abs(centre - telomere[0])),
+                    np.abs(centre - telomere[1])
                 )
+                if do_relative:
+                    distance /= denominator
+                trans_diff_cen_tel.extend(distance)
                 trans_chrom_compare.extend([chrom] * len(trans_chrom.index))
-
-        trans_bio = np.asarray(trans_diff_cen_tel)
-        if not np.all([x == y for x, y in zip(transcriptome['chr'].to_list(), trans_chrom_compare)]):
-            raise ValueError('Chromosomes (transcript) did not match')
-
-        igr_diff_cen_tel = []
-        igr_chrom_compare = []
-        for row in c_pos.iterrows():
-            chrom = row[1]['chr']
-            centromere = row[1]['pos']
-            telomere = t_pos[t_pos['chr'] == chrom]['pos'].values[0]
 
             chrom_list = list(filter(lambda x: x[0] == chrom, start_igr))
             if chrom_list:
@@ -106,10 +106,18 @@ def convert_bio_data(
                 _, train_chrom_igr_end = zip(*filter(lambda x: x[0] == chrom, end_igr))
                 centre = (np.asarray(train_chrom_igr_start, dtype='float')
                           + np.asarray(train_chrom_igr_end, dtype='float')) / 2.
-                igr_diff_cen_tel.extend(
-                    np.minimum(np.abs(centre - centromere), np.abs(centre - telomere))
+                distance = np.minimum(
+                    np.minimum(np.abs(centre - centromere), np.abs(centre - telomere[0])),
+                    np.abs(centre - telomere[1])
                 )
+                if do_relative:
+                    distance /= denominator
+                igr_diff_cen_tel.extend(distance)
                 igr_chrom_compare.extend(train_chrom_igr)
+
+        trans_bio = np.asarray(trans_diff_cen_tel)
+        if not np.all([x == y for x, y in zip(transcriptome['chr'].to_list(), trans_chrom_compare)]):
+            raise ValueError('Chromosomes (transcript) did not match')
 
         chr_igr, _ = zip(*start_igr)
         if not np.all([x == y for x, y in zip(chr_igr, igr_chrom_compare)]):
@@ -187,6 +195,60 @@ def main(args):
         print('Learn models')
         if neg_random:
             print('Randomise model')
+    if verbosity > 1:
+        if not no_tcr:
+            if bio_type.lower() not in ['size', 'slam']:
+                if do_each:
+                    fig, _ = plt.subplots(4, 2, figsize=(8, 7))
+                    plt.subplot2grid((4, 2), (3, 0), colspan=2, fig=fig)
+                else:
+                    fig, _ = plt.subplots(2, 2, figsize=(8, 7))
+                    plt.subplot2grid((2, 2), (1, 0), colspan=2, fig=fig)
+                ax = fig.get_axes()
+            else:
+                if do_each:
+                    fig, ax = plt.subplots(3, 2, figsize=(8, 7))
+                else:
+                    fig, ax = plt.subplots(1, 2, figsize=(8, 7))
+                ax = ax.reshape(-1)
+        else:
+            if bio_type.lower() not in ['size', 'slam']:
+                fig, ax = plt.subplots(2, 2, figsize=(8, 7))
+                ax = ax.reshape(-1)
+            else:
+                fig, ax = plt.subplots(1, 2, figsize=(8, 7))
+                ax = ax.reshape(-1)
+        for (rm, traind), a in zip(train_data, ax):
+            if bio_type.lower() not in ['slam', 'nucl']:
+                val, _, _ = a.hist(traind, bins=100, label=rm.name, density=True)
+            else:
+                val, _, _ = a.hist(traind, bins=100, range=(0, 15), label=rm.name, density=True)
+            bin_borders = frequency_bins(traind, 2)
+            a.vlines(bin_borders[1], ymin=0, ymax=np.max(val), colors='red')
+
+            a.set_title(rm.name)
+        title_suffix = '' if not no_tcr else ' | No TCR'
+        if bio_type.lower() == 'slam':
+            name = 'SLAM%s' % title_suffix
+        elif bio_type.lower() == 'nucl':
+            name = 'Nucleosome density%s' % title_suffix
+        elif bio_type.lower() == 'size':
+            name = 'Size%s' % title_suffix
+        elif 'meres' in bio_type.lower():
+            name = 'meres%s' % title_suffix
+        else:
+            raise ValueError('Unknown bio_type')
+        fig.suptitle(name)
+        fig.tight_layout()
+
+        if not save_prefix:
+            directory = validate_dir('figures/meta_distributions')
+            suffix = '' if not no_tcr else '_notcr'
+            plt.savefig('%s/%s_%s_distribution%s.png' % (directory, save_prefix, bio_type.lower(), suffix))
+            plt.close('all')
+        else:
+            plt.show()
+
     for rm, traind in train_data:
         if verbosity > 0:
             print('Create parameter mapping for model %s' % rm.name)
