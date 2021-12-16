@@ -52,7 +52,7 @@ class JMAK:
 
     def _estimate_shape_scale(self, max_frac):
         if np.any(max_frac < self.data_points):
-            return np.nan, np.nan, np.nan
+            return np.nan, np.nan, np.nan, np.nan
         dp = self.data_points.copy()
         dp[dp == max_frac] -= np.finfo('float').eps
         dp[dp == 0] += np.finfo('float').eps
@@ -66,10 +66,11 @@ class JMAK:
             return (
                 result.params[1],  # shape
                 np.exp(result.params[0] / result.params[1]),  # scale
+                result.rsquared_adj,  # R2
                 result.fvalue  # fvalue
             )
         else:
-            return np.nan, np.nan, np.nan
+            return np.nan, np.nan, np.nan, np.nan
 
     def estimate_parameters(
             self,
@@ -89,6 +90,7 @@ class JMAK:
                              'greater than 0')
 
         fval = []
+        rsquared = []
         beta_est = []
         m_est = []
         if verbosity > 1:
@@ -100,7 +102,7 @@ class JMAK:
         for num, mf in enumerate(np.arange(min_f, max_f + delta_f, delta_f)):
             if verbosity > 0:
                 print('Estimate parameters for maximum fraction set to %.2f' % mf)
-            m, beta, f = self._estimate_shape_scale(mf)
+            m, beta, rs, f = self._estimate_shape_scale(mf)
             if verbosity > 0:
                 print('Estimated parameters for maximum fraction %.2f are\nm=\t%.3f\nbeta=\t%.5f' % (mf, m, beta))
                 if verbosity > 1 and counter < num_cols * num_rows and not np.isnan(f):
@@ -109,22 +111,22 @@ class JMAK:
                     counter += 1
 
             fval.append(f)
+            rsquared.append(rs)
             beta_est.append(beta)
             m_est.append(m)
 
         fval = np.asarray(fval)
+        rsquared = np.asarray(rsquared)
         if np.all(np.isnan(fval)):
             self.m = None
             self.beta = None
             self.max_frac = None
             return
 
-        mask = ~np.isnan(fval)
-        # Take the lowest within the tolerance value
-        idx = np.where(np.abs(np.nanmax(fval) - fval[mask]) < fval_accuracy)[0][0]
-        self.beta = np.asarray(beta_est)[mask][idx]
-        self.m = np.asarray(m_est)[mask][idx]
-        self.max_frac = np.arange(min_f, max_f + delta_f, delta_f)[mask][idx]
+        idx = np.nanargmax(rsquared)
+        self.beta = np.asarray(beta_est)[idx]
+        self.m = np.asarray(m_est)[idx]
+        self.max_frac = np.arange(min_f, max_f + delta_f, delta_f)[idx]
 
         if verbosity > 1:
             if idx < num_cols * num_rows:
