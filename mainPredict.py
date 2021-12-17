@@ -3,65 +3,22 @@ import multiprocessing
 
 
 def main():
-    bio_types = ['slam', 'nucl', 'size', 'meres']
+    bio_types = ['netseq', 'nucl', 'abf1', 'h2a', 'size', 'meres', 'rel_meres']
     num_classes = 2
     num_trials = 10
     num_cpus = 4
     do_each = True
+    no_tcr = False
     with multiprocessing.Pool(processes=num_cpus) as parallel:
         for bt in bio_types:
-            if bt == 'slam':
-                bi = '20min'
+            if bt == 'abf1':
+                bi = 'uv'
             elif bt == 'nucl':
                 bi = '0min'
             else:
                 bi = ''
 
             for i in range(1, num_trials + 1):
-                # GP
-                parallel.apply_async(
-                    os.system,
-                    ('python3.8 predict.py '
-                        '--bio_type=%s '
-                        '--bio_index=%s '
-                        '--ml_type=gp '
-                        '%s '
-                        '--save_prefix=%s_gp_%s%s '
-                        '--save_fig '
-                        '--to_pickle '
-                        '--num_cpus=1 '
-                        '--verbosity=4 '
-                        '--load_if_exist'
-                        % (
-                          bt,
-                          bi,
-                          '--do_each' if do_each else '',
-                          bt,
-                          'each' if do_each else 'total',
-                          i
-                        ), ))
-                parallel.apply_async(
-                    os.system,
-                    ('python3.8 predict.py '
-                     '--bio_type=%s '
-                          '--bio_index=%s '
-                          '--ml_type=gp '
-                          '%s '
-                          '--neg_random '
-                          '--save_prefix=%s_gp_%s%s_random '
-                          '--save_fig '
-                          '--to_pickle '
-                          '--num_cpus=1 '
-                          '--verbosity=4 '
-                          '--load_if_exist'
-                          % (
-                              bt,
-                              bi,
-                              '--do_each' if do_each else '',
-                              bt,
-                              'each' if do_each else 'total',
-                              i
-                              ), ))
 
                 # Lin
                 parallel.apply_async(
@@ -71,17 +28,19 @@ def main():
                           '--ml_type=lin '
                           '--num_classes=%s '
                           '%s '
-                          '--save_prefix=%s_lin_%s%s '
+                          '%s '
+                          '--save_prefix=%s%s_lin_%s%s '
                           '--save_fig '
                           '--to_pickle '
                           '--num_cpus=1 '
                           '--verbosity=4 '
-                          '--load_if_exist'
                           % (
                               bt,
                               bi,
                               num_classes,
                               '--do_each' if do_each else '',
+                              '--no_tcr' if no_tcr else '',
+                              'notcr_' if no_tcr else '',
                               bt,
                               'each' if do_each else 'total',
                               i
@@ -93,18 +52,20 @@ def main():
                           '--ml_type=lin '
                           '--num_classes=%s '
                           '%s '
+                          '%s '
                           '--neg_random '
-                          '--save_prefix=%s_lin_%s%s_random '
+                          '--save_prefix=%s%s_lin_%s%s_random '
                           '--save_fig '
                           '--to_pickle '
                           '--num_cpus=1 '
                           '--verbosity=4 '
-                          '--load_if_exist'
                           % (
                               bt,
                               bi,
                               num_classes,
                               '--do_each' if do_each else '',
+                              '--no_tcr' if no_tcr else '',
+                              'notcr_' if no_tcr else '',
                               bt,
                               'each' if do_each else 'total',
                               i
@@ -119,18 +80,20 @@ def main():
                               '--num_classes=%s '
                               '--kneighbour=%s '
                               '%s '
-                              '--save_prefix=%s_knn%s_%s%s '
+                              '%s '
+                              '--save_prefix=%s%s_knn%s_%s%s '
                               '--save_fig '
                               '--to_pickle '
                               '--num_cpus=1 '
                               '--verbosity=4 '
-                              '--load_if_exist'
                               % (
                                   bt,
                                   bi,
                                   num_classes,
                                   kneighbour,
                                   '--do_each' if do_each else '',
+                                  '--no_tcr' if no_tcr else '',
+                                  'notcr_' if no_tcr else '',
                                   bt,
                                   kneighbour,
                                   'each' if do_each else 'total',
@@ -144,19 +107,21 @@ def main():
                               '--num_classes=%s '
                               '--kneighbour=%s '
                               '%s '
+                              '%s '
                               '--neg_random '
-                              '--save_prefix=%s_knn%s_%s%s_random '
+                              '--save_prefix=%s%s_knn%s_%s%s_random '
                               '--save_fig '
                               '--to_pickle '
                               '--num_cpus=1 '
                               '--verbosity=4 '
-                              '--load_if_exist'
                               % (
                                   bt,
                                   bi,
                                   num_classes,
                                   kneighbour,
                                   '--do_each' if do_each else '',
+                                  '--no_tcr' if no_tcr else '',
+                                  'notcr_' if no_tcr else '',
                                   bt,
                                   kneighbour,
                                   'each' if do_each else 'total',
