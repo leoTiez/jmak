@@ -20,10 +20,9 @@ NUCLEOSOME_INDEX = {
     '30min': 2
 }
 
-SLAM_INDEX = {
+ABF1_INDEX = {
     'nouv': 0,
-    '20min': 1,
-    '120min': 2
+    'uv': 1
 }
 
 NUCL_PATHS = [
@@ -32,13 +31,18 @@ NUCL_PATHS = [
     'data/seq/nucl_wt_30min.bw'
 ]
 
-SLAM_PATHS = [
-    'data/seq/nouv_slam_mins_new.bw',
-    'data/seq/nouv_slam_plus_new.bw',
-    'data/seq/20m_slam_mins_new.bw',
-    'data/seq/20m_slam_plus_new.bw',
-    'data/seq/120m_slam_mins_new.bw',
-    'data/seq/120m_slam_plus_new.bw'
+NETSEQ_PATHS = [
+    'data/seq/wt_netseq_minus.bw',
+    'data/seq/wt_netseq_plus.bw'
+]
+
+ABF1_PATHS = [
+    'data/seq/wt_abf1_nouv.bw',
+    'data/seq/wt_abf1_uv.bw'
+]
+
+H2AX_PATHS = [
+    'data/seq/wt_h2a_0m.bw'
 ]
 
 
@@ -50,10 +54,23 @@ def convert_bio_data(
         end_igr
 ):
     trans_bio, igr_bio = None, None
-    if bio_type.lower() == 'nucl' or bio_type == 'slam':
-        bio_data_paths = NUCL_PATHS if bio_type.lower() == 'nucl' else SLAM_PATHS
-        use_directionality = False if bio_type.lower() == 'nucl' else True
-        idx = NUCLEOSOME_INDEX[bio_index] if bio_type.lower() == 'nucl' else SLAM_INDEX[bio_index]
+    if bio_type.lower() in ['nucl', 'netseq', 'abf1', 'h2a']:
+        if bio_type.lower() == 'nucl':
+            bio_data_paths = NUCL_PATHS
+            use_directionality = False
+            idx = NUCLEOSOME_INDEX[bio_index]
+        elif bio_type.lower() == 'netseq':
+            bio_data_paths = NETSEQ_PATHS
+            use_directionality = True
+            idx = 0
+        elif bio_type.lower() == 'abf1':
+            bio_data_paths = ABF1_PATHS
+            use_directionality = False
+            idx = ABF1_INDEX[bio_index]
+        else:
+            bio_data_paths = H2AX_PATHS
+            use_directionality = False
+            idx = 0
         trans_bio = load_bio_data(
             zip(transcriptome['chr'].to_list(), transcriptome['start'].to_list()),
             zip(transcriptome['chr'].to_list(), transcriptome['end'].to_list()),
@@ -172,7 +189,7 @@ def main(args):
         end_igr
     )
 
-    if bio_type.lower() in ['slam', 'size']:
+    if bio_type.lower() in ['netseq', 'size']:
         region_model_list = list(filter(lambda x: 'gene' in x.name.lower() or 'nts' in x.name.lower(), region_model_list))
     train_data, test_data = [], []
     for rm in region_model_list:
@@ -195,9 +212,10 @@ def main(args):
         print('Learn models')
         if neg_random:
             print('Randomise model')
+
     if verbosity > 4:
         if not no_tcr:
-            if bio_type.lower() not in ['size', 'slam']:
+            if bio_type.lower() not in ['size', 'netseq']:
                 if do_each:
                     fig, _ = plt.subplots(4, 2, figsize=(8, 7))
                     plt.subplot2grid((4, 2), (3, 0), colspan=2, fig=fig)
@@ -212,14 +230,14 @@ def main(args):
                     fig, ax = plt.subplots(1, 2, figsize=(8, 7))
                 ax = ax.reshape(-1)
         else:
-            if bio_type.lower() not in ['size', 'slam']:
+            if bio_type.lower() not in ['size', 'netseq']:
                 fig, ax = plt.subplots(2, 2, figsize=(8, 7))
                 ax = ax.reshape(-1)
             else:
                 fig, ax = plt.subplots(1, 2, figsize=(8, 7))
                 ax = ax.reshape(-1)
         for (rm, traind), a in zip(train_data, ax):
-            if bio_type.lower() not in ['slam', 'nucl']:
+            if bio_type.lower() not in ['netseq', 'nucl', 'abf1', 'h2a']:
                 val, _, _ = a.hist(traind, bins=100, label=rm.name, density=True)
             else:
                 val, _, _ = a.hist(traind, bins=100, range=(0, 15), label=rm.name, density=True)
@@ -228,14 +246,19 @@ def main(args):
 
             a.set_title(rm.name)
         title_suffix = '' if not no_tcr else ' | No TCR'
-        if bio_type.lower() == 'slam':
-            name = 'SLAM%s' % title_suffix
+        if bio_type.lower() == 'netseq':
+            name = 'NET-seq%s' % title_suffix
         elif bio_type.lower() == 'nucl':
             name = 'Nucleosome density%s' % title_suffix
+        elif bio_type.lower() == 'abf1':
+            name = 'Abf1%s' % title_suffix
+        elif bio_type.lower() == 'h2a':
+            name = 'gamma H2AX%s' % title_suffix
         elif bio_type.lower() == 'size':
             name = 'Size%s' % title_suffix
         elif 'meres' in bio_type.lower():
-            name = 'meres%s' % title_suffix
+            is_relative_prefix = '' if bio_type.lower() == 'meres' else 'Relative '
+            name = '%smeres%s' % (is_relative_prefix, title_suffix)
         else:
             raise ValueError('Unknown bio_type')
         fig.suptitle(name)
