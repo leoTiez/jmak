@@ -138,11 +138,11 @@ def argparse_bioplotter(arguments):
 
     parser.add_argument('--bio_type', type=str, required=True,
                         help='Pass the data type that is used in order to determine the colour gradient.'
-                             'Possible are: slam | nucl | size | meres'
+                             'Possible are: netseq | nucl | abf1 | h2a | size | meres'
                         )
     parser.add_argument('--use_sum', action='store_true', dest='use_sum',
                         help='If set, when the biological data is loaded, the sum is taken instead of the mean.'
-                             'Only important for bio_type=slam or bio_type=nucl')
+                             'Only important for sequencing data, ie netseq, nucl, abf1, and h2a')
     parser.add_argument('--do_each', action='store_true', dest='do_each',
                         help='If set, there is one model per region in each transcript. '
                              'Otherwise beginning, centre of a gene and end are combined in one single model.')
@@ -156,6 +156,8 @@ def argparse_bioplotter(arguments):
                         help='The colour gradient c is transformed c^power_norm.')
     parser.add_argument('--save_prefix', type=str, default='',
                         help='Set identifying string that goes in front of every saved file name.')
+    parser.add_argument('--no_tcr', action='store_true', dest='no_tcr',
+                        help='If set, programme does not distinguish between TCR and rest.')
 
     parsed_args = parser.parse_args(arguments)
     return parsed_args
@@ -169,12 +171,12 @@ def argparse_predict(arguments):
 
     parser.add_argument('--bio_type', type=str, required=True,
                         help='Pass the data type that is used in order to determine the function '
-                             'and to make predictions. Possible are: slam | nucl | size | meres')
+                             'and to make predictions. Possible are: netseq | nucl | abf1 | h2a | size | meres')
     parser.add_argument('--bio_index', type=str, default='',
-                        help='Several time points are available for SLAM and NUCL. Pass the time identifier'
+                        help='Several time points are available for ABF1 and NUCL. Pass the time identifier'
                              'with this key word. '
                              'Possible are for NUCL: nouv | 0min | 30min .'
-                             'Possible are for SLAM: nouv | 20min | 120min . '
+                             'Possible are for ABF1: nouv | uv . '
                         )
     parser.add_argument('--ml_type', type=str, required=True,
                         help='Define the applied machine learning approach which is used to find the parameter map. '
