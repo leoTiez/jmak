@@ -6,6 +6,7 @@ import statsmodels.api as smapi
 import matplotlib.pyplot as plt
 import matplotlib.colors as cls
 from mpl_toolkits.axes_grid1 import make_axes_locatable, host_subplot
+from matplotlib.ticker import StrMethodFormatter
 
 from src.Utils import validate_dir, frequency_bins
 from src.DataLoader import transform_path
@@ -117,7 +118,7 @@ class JMAK:
 
         fval = np.asarray(fval)
         rsquared = np.asarray(rsquared)
-        if np.all(np.isnan(fval)):
+        if np.all(np.isnan(rsquared)):
             self.m = None
             self.beta = None
             self.max_frac = None
@@ -322,9 +323,13 @@ class RegionModel:
 
             return heatmap
 
-        params_m = list(self.get_model_parameter('m'))
-        params_beta = list(self.get_model_parameter('beta'))
-        params_max_frac = list(self.get_model_parameter('max_frac'))
+        params_m = np.asarray(list(self.get_model_parameter('m')))
+        params_beta = 1./np.asarray(list(self.get_model_parameter('beta')))
+        params_max_frac = np.asarray(list(self.get_model_parameter('max_frac')))
+        mask = ~np.isnan(params_beta)
+        params_m = params_m[mask]
+        params_beta = params_beta[mask]
+        params_max_frac = params_max_frac[mask]
         fig, ax = plt.subplots(3, 1, figsize=figsize)
 
         hm_m_beta = plot_hist(params_m, params_beta, ax[0])
@@ -332,7 +337,7 @@ class RegionModel:
         hm_mf_beta = plot_hist(params_max_frac, params_beta, ax[2])
 
         ax[0].set_xlabel('m')
-        ax[0].set_ylabel(r'$\beta$')
+        ax[0].set_ylabel(r'$\tau$')
         divider = make_axes_locatable(ax[0])
         cax = divider.append_axes('right', size='5%', pad=0.05)
         fig.colorbar(hm_m_beta, cax=cax, orientation='vertical')
@@ -344,11 +349,17 @@ class RegionModel:
         fig.colorbar(hm_m_mf, cax=cax, orientation='vertical')
 
         ax[2].set_xlabel('Maximum fraction')
-        ax[2].set_ylabel(r'$\beta$')
+        ax[2].set_ylabel(r'$\tau$')
         divider = make_axes_locatable(ax[2])
         cax = divider.append_axes('right', size='5%', pad=0.05)
         fig.colorbar(hm_mf_beta, cax=cax, orientation='vertical')
 
+        ax[0].set_yticklabels(['%.2f' % float(y._text) for y in ax[0].yaxis.get_ticklabels()])
+        ax[1].set_yticklabels(['%.2f' % float(y._text) for y in ax[1].yaxis.get_ticklabels()])
+        ax[2].set_yticklabels(['%.2f' % float(y._text) for y in ax[2].yaxis.get_ticklabels()])
+        ax[0].set_xticklabels(['%.2f' % float(x._text) for x in ax[0].xaxis.get_ticklabels()])
+        ax[1].set_xticklabels(['%.2f' % float(x._text) for x in ax[1].xaxis.get_ticklabels()])
+        ax[2].set_xticklabels(['%.2f' % float(x._text) for x in ax[2].xaxis.get_ticklabels()])
         fig.suptitle('%s\nParameter distribution' % self.name)
         fig.tight_layout()
 
