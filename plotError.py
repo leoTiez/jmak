@@ -4,6 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
 import seaborn as sns
+from scipy.stats import ttest_ind
 
 from src.UtilsMain import argparse_errorplotter
 from src.Utils import validate_dir
@@ -21,6 +22,7 @@ def main(args):
     title_biotype = args.title_biotype
     save_fig = args.save_fig
     rm_percentile = 20
+    p_thresh = .0001
 
     gene_s = np.empty(0)
     gene_c = np.empty(0)
@@ -46,7 +48,7 @@ def main(args):
             else:
                 gs = np.loadtxt('%s/%s%s_test_All Genes_error.txt' % (array_folder, save_prefix, i), delimiter=',')
                 ntss = np.loadtxt('%s/%s%s_test_All NTS_error.txt' % (array_folder, save_prefix, i), delimiter=',')
-            if 'size' not in title_biotype.lower() and 'slam' not in title_biotype.lower():
+            if 'size' not in save_prefix.lower() and 'netseq' not in save_prefix.lower():
                 if 'total' in save_prefix:
                     intergen = np.loadtxt(
                         '%s/%s%s_test_Intergenic regions_error.txt' % (array_folder, save_prefix, i),
@@ -75,7 +77,7 @@ def main(args):
             ntsc = np.loadtxt('%s/%s%s_test_NTS centre_error.txt' % (array_folder, save_prefix, i), delimiter=',')
             ntse = np.loadtxt('%s/%s%s_test_NTS end_error.txt' % (array_folder, save_prefix, i), delimiter=',')
 
-            if 'size' not in title_biotype.lower() and 'slam' not in title_biotype.lower():
+            if 'size' not in save_prefix.lower() and 'netseq' not in save_prefix.lower():
                 intergen = np.loadtxt(
                     '%s/%s%s_test_Intergenic regions_error.txt' % (array_folder, save_prefix, i),
                     delimiter=','
@@ -93,7 +95,7 @@ def main(args):
     if 'gp' in save_prefix:
         gene_s = trim_data(gene_s, rm_percentile=rm_percentile)
         nts_s = trim_data(nts_s, rm_percentile=rm_percentile)
-        if 'size' not in title_biotype.lower() and 'slam' not in title_biotype.lower():
+        if 'size' not in save_prefix.lower() and 'netseq' not in save_prefix.lower():
             igr = trim_data(igr, rm_percentile=rm_percentile)
         if 'each' in save_prefix:
             gene_c = trim_data(gene_c, rm_percentile=rm_percentile)
@@ -142,7 +144,7 @@ def main(args):
                     delimiter=','
                 )
 
-            if 'size' not in title_biotype.lower() and 'slam' not in title_biotype.lower():
+            if 'size' not in save_prefix.lower() and 'netseq' not in save_prefix.lower():
                 if 'total' in save_prefix:
                     randigr = np.loadtxt(
                         '%s/%s%s_random_test_Intergenic regions_error.txt' % (array_folder, save_prefix, i),
@@ -170,7 +172,7 @@ def main(args):
             randnts_c = np.loadtxt('%s/%s%s_random_test_NTS centre_error.txt' % (array_folder, save_prefix, i), delimiter=',')
             randnts_e = np.loadtxt('%s/%s%s_random_test_NTS end_error.txt' % (array_folder, save_prefix, i), delimiter=',')
 
-            if 'size' not in title_biotype.lower() and 'slam' not in title_biotype.lower():
+            if 'size' not in save_prefix.lower() and 'netseq' not in save_prefix.lower():
                 randigr = np.loadtxt(
                     '%s/%s%s_random_test_Intergenic regions_error.txt' % (array_folder, save_prefix, i),
                     delimiter=','
@@ -187,7 +189,7 @@ def main(args):
     if 'gp' in save_prefix:
         rand_gene_s = trim_data(rand_gene_s, rm_percentile=rm_percentile)
         rand_nts_s = trim_data(rand_nts_s, rm_percentile=rm_percentile)
-        if 'size' not in title_biotype.lower() and 'slam' not in title_biotype.lower():
+        if 'size' not in save_prefix.lower() and 'netseq' not in save_prefix.lower():
             rand_igr = trim_data(rand_igr, rm_percentile=rm_percentile)
         if 'each' in save_prefix:
             rand_gene_c = trim_data(rand_gene_c, rm_percentile=rm_percentile)
@@ -195,22 +197,26 @@ def main(args):
             rand_nts_c = trim_data(rand_nts_c, rm_percentile=rm_percentile)
             rand_nts_e = trim_data(rand_nts_e, rm_percentile=rm_percentile)
 
-    palette = sns.color_palette()
-    custom_lines = [Line2D([0], [0], color=palette[0], lw=4),
-                    Line2D([0], [0], color=palette[-2], lw=4)]
+    cpalette = sns.color_palette()
+    custom_lines = [Line2D([0], [0], color=cpalette[3], lw=4),
+                    Line2D([0], [0], color=cpalette[0], lw=4),
+                    Line2D([0], [0], color=cpalette[-2], lw=4)]
     plt.figure(figsize=(8, 7))
-    if 'size' not in title_biotype.lower() and 'slam' not in title_biotype.lower():
+    if 'size' not in save_prefix.lower() and 'netseq' not in save_prefix.lower():
         if 'total' in save_prefix:
             data = [
                 gene_s, rand_gene_s,
                 nts_s, rand_nts_s,
                 igr, rand_igr
             ]
-            palette = [
-                palette[0], palette[-2],
-                palette[0], palette[-2],
-                palette[0], palette[-2]
-            ]
+            _, p_gene_s = ttest_ind(gene_s, rand_gene_s, alternative='less')
+            _, p_nts_s = ttest_ind(nts_s, rand_nts_s, alternative='less')
+            _, p_igr = ttest_ind(igr, rand_igr, alternative='less')
+            p_values = [p_gene_s, p_nts_s, p_igr]
+            palette = []
+            for p in p_values:
+                palette.extend([cpalette[3], cpalette[-2]] if p < p_thresh else [cpalette[0], cpalette[-2]])
+
             xticks = [.5, 2.5, 4.5]
             xtick_handles = ['Genes', 'NTS', 'IGR']
         elif 'no_tcr' in save_prefix:
@@ -220,12 +226,14 @@ def main(args):
                 igr, rand_igr,
                 igr_minus, rand_igr_minus
             ]
-            palette = [
-                palette[0], palette[-2],
-                palette[0], palette[-2],
-                palette[0], palette[-2],
-                palette[0], palette[-2]
-            ]
+            _, p_gene_s = ttest_ind(gene_s, rand_gene_s, alternative='less')
+            _, p_nts_s = ttest_ind(nts_s, rand_nts_s, alternative='less')
+            _, p_igr = ttest_ind(igr, rand_igr, alternative='less')
+            _, p_igr_minus = ttest_ind(igr_minus, rand_igr_minus, alternative='less')
+            p_values = [p_gene_s, p_nts_s, p_igr, p_igr_minus]
+            palette = []
+            for p in p_values:
+                palette.extend([cpalette[3], cpalette[-2]] if p < p_thresh else [cpalette[0], cpalette[-2]])
             xticks = [.5, 2.5, 4.5, 6.5]
             xtick_handles = ['Genes', 'NTS', 'IGR +', 'IGR -']
         else:
@@ -234,16 +242,17 @@ def main(args):
                 nts_s, rand_nts_s, nts_c, rand_nts_c, nts_e, rand_nts_e,
                 igr, rand_igr
             ]
-            palette = [
-                palette[0], palette[-2],
-                palette[0], palette[-2],
-                palette[0], palette[-2],
-                palette[0], palette[-2],
-                palette[0], palette[-2],
-                palette[0], palette[-2],
-                palette[0], palette[-2],
-
-            ]
+            _, p_gene_s = ttest_ind(gene_s, rand_gene_s, alternative='less')
+            _, p_gene_c = ttest_ind(gene_c, rand_gene_c, alternative='less')
+            _, p_gene_e = ttest_ind(gene_e, rand_gene_e, alternative='less')
+            _, p_nts_s = ttest_ind(nts_s, rand_nts_s, alternative='less')
+            _, p_nts_c = ttest_ind(nts_c, rand_nts_c, alternative='less')
+            _, p_nts_e = ttest_ind(nts_e, rand_nts_e, alternative='less')
+            _, p_igr = ttest_ind(igr, rand_igr, alternative='less')
+            p_values = [p_gene_s, p_gene_c, p_gene_e, p_nts_s, p_nts_c, p_nts_e, p_igr]
+            palette = []
+            for p in p_values:
+                palette.extend([cpalette[3], cpalette[-2]] if p < p_thresh else [cpalette[0], cpalette[-2]])
             xticks = [.5, 2.5, 4.5, 6.5, 8.5, 10.5, 12.5]
             xtick_handles = ['Gene s', 'Gene c', 'Gene e', 'NTS s', 'NTS c', 'NTS e', 'IGR']
     else:
@@ -252,10 +261,12 @@ def main(args):
                 gene_s, rand_gene_s,
                 nts_s, rand_nts_s,
             ]
-            palette = [
-                palette[0], palette[-2],
-                palette[0], palette[-2],
-            ]
+            _, p_gene_s = ttest_ind(gene_s, rand_gene_s, alternative='less')
+            _, p_nts_s = ttest_ind(nts_s, rand_nts_s, alternative='less')
+            p_values = [p_gene_s, p_nts_s]
+            palette = []
+            for p in p_values:
+                palette.extend([cpalette[3], cpalette[-2]] if p < p_thresh else [cpalette[0], cpalette[-2]])
             xticks = [.5, 2.5]
             xtick_handles = ['Genes', 'NTS']
         else:
@@ -263,23 +274,26 @@ def main(args):
                 gene_s, rand_gene_s, gene_c, rand_gene_c, gene_e, rand_gene_e,
                 nts_s, rand_nts_s, nts_c, rand_nts_c, nts_e, rand_nts_e
             ]
-            palette = [
-                palette[0], palette[-2],
-                palette[0], palette[-2],
-                palette[0], palette[-2],
-                palette[0], palette[-2],
-                palette[0], palette[-2],
-                palette[0], palette[-2],
-            ]
+            _, p_gene_s = ttest_ind(gene_s, rand_gene_s, alternative='less')
+            _, p_gene_c = ttest_ind(gene_c, rand_gene_c, alternative='less')
+            _, p_gene_e = ttest_ind(gene_e, rand_gene_e, alternative='less')
+            _, p_nts_s = ttest_ind(nts_s, rand_nts_s, alternative='less')
+            _, p_nts_c = ttest_ind(nts_c, rand_nts_c, alternative='less')
+            _, p_nts_e = ttest_ind(nts_e, rand_nts_e, alternative='less')
+            p_values = [p_gene_s, p_gene_c, p_gene_e, p_nts_s, p_nts_c, p_nts_e]
+            palette = []
+            for p in p_values:
+                palette.extend([cpalette[3], cpalette[-2]] if p < p_thresh else [cpalette[0], cpalette[-2]])
             xticks = [.5, 2.5, 4.5, 6.5, 8.5, 10.5]
             xtick_handles = ['Gene s', 'Gene c', 'Gene e', 'NTS s', 'NTS c', 'NTS e']
     ax = sns.violinplot(data=data, palette=palette)
-    plt.setp(ax.collections, alpha=.1)
+    plt.plot([-.5, np.max(xticks) + 1], [0.5, 0.5], color=cpalette[-2], ls='--', alpha=.5)
+    plt.setp(ax.collections, alpha=.2)
     sns.stripplot(data=data, palette=palette)
 
     plt.xticks(xticks, xtick_handles)
     plt.title('Error distribution %s' % title_biotype)
-    plt.legend(custom_lines, ['Original', 'Random'])
+    plt.legend(custom_lines, ['Significant True', 'True', 'Random'])
     if 'gp' not in save_prefix.lower():
         plt.ylim((0, 1))
 
