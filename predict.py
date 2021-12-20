@@ -41,7 +41,7 @@ ABF1_PATHS = [
     'data/seq/wt_abf1_uv.bw'
 ]
 
-H2AX_PATHS = [
+H2AZ_PATHS = [
     'data/seq/wt_h2a_0m.bw'
 ]
 
@@ -68,7 +68,7 @@ def convert_bio_data(
             use_directionality = False
             idx = ABF1_INDEX[bio_index]
         else:
-            bio_data_paths = H2AX_PATHS
+            bio_data_paths = H2AZ_PATHS
             use_directionality = False
             idx = 0
         trans_bio = load_bio_data(
@@ -253,7 +253,7 @@ def main(args):
         elif bio_type.lower() == 'abf1':
             name = 'Abf1%s' % title_suffix
         elif bio_type.lower() == 'h2a':
-            name = 'gamma H2AX%s' % title_suffix
+            name = 'H2A.Z%s' % title_suffix
         elif bio_type.lower() == 'size':
             name = 'Size%s' % title_suffix
         elif 'meres' in bio_type.lower():

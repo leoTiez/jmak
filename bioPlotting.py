@@ -30,7 +30,7 @@ def main(args):
         'data/seq/wt_abf1_uv.bw'
     ]
 
-    h2aX_paths = [
+    h2aZ_paths = [
         'data/seq/wt_h2a_0m.bw'
     ]
 
@@ -197,19 +197,19 @@ def main(args):
                         save_prefix='%s_abf1_%s_%s_%s' % (save_prefix, n, mr[0], mr[1])
                     )
     elif bio_type.lower() == 'h2a':
-        # Load gamma h2aX data
-        h2aX_data_trans = load_bio_data(
+        # Load h2aZ data
+        h2aZ_data_trans = load_bio_data(
             zip(transcriptome['chr'].to_list(), transcriptome['start'].to_list()),
             zip(transcriptome['chr'].to_list(), transcriptome['end'].to_list()),
-            h2aX_paths,
+            h2aZ_paths,
             use_directionality=False,
             use_sum=use_sum
         )
 
-        h2aX_data_igr = load_bio_data(
+        h2aZ_data_igr = load_bio_data(
             start_igr,
             end_igr,
-            h2aX_paths,
+            h2aZ_paths,
             use_directionality=False,
             use_sum=use_sum
         )
@@ -217,31 +217,31 @@ def main(args):
         for tm in trans_rmodels:
             for mr in [(0, 5), (5, 10), (10, 15), (15, 20), (20, 25)]:
                 tm.plot_parameter_with_gradient(
-                    h2aX_data_trans[0],
+                    h2aZ_data_trans[0],
                     cmap='coolwarm',
                     alpha=.7,
-                    title_add='| gamma H2AX',
+                    title_add='| H2A.Z',
                     m_range=mr,
                     size_scaling=size_scaling,
                     size_power=size_power,
                     power_norm=power_norm,
                     save_fig=save_fig,
-                    save_prefix='%s_gh2ax_%s_%s' % (save_prefix, mr[0], mr[1])
+                    save_prefix='%s_h2az_%s_%s' % (save_prefix, mr[0], mr[1])
                 )
 
         for im in igr_rmodels:
             for mr in [(0, 5), (5, 10), (10, 15), (15, 20), (20, 25)]:
                 im.plot_parameter_with_gradient(
-                    h2aX_data_igr[0],
+                    h2aZ_data_igr[0],
                     cmap='coolwarm',
                     alpha=.7,
-                    title_add='| gamma H2AX',
+                    title_add='| H2A.Z',
                     m_range=mr,
                     size_scaling=size_scaling,
                     size_power=size_power,
                     power_norm=power_norm,
                     save_fig=save_fig,
-                    save_prefix='%s_gh2ax_%s_%s' % (save_prefix, mr[0], mr[1])
+                    save_prefix='%s_h2az_%s_%s' % (save_prefix, mr[0], mr[1])
                 )
 
     elif 'meres' in bio_type.lower():
