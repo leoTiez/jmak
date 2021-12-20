@@ -37,19 +37,19 @@ def main(args):
     i = 0
     while True and i < max_iter:
         i += 1
-        if 'total' in save_prefix or 'no_tcr' in save_prefix:
+        if 'total' in save_prefix or 'notcr' in save_prefix:
             if not os.path.isfile('%s/%s%s_test_Genes total_error.txt' % (array_folder, save_prefix, i)) \
                     and not os.path.isfile('%s/%s%s_test_All Genes_error.txt' % (array_folder, save_prefix, i)):
                 continue
 
-            if 'total' in save_prefix:
+            if 'total' in save_prefix and not 'notcr':
                 gs = np.loadtxt('%s/%s%s_test_Genes total_error.txt' % (array_folder, save_prefix, i), delimiter=',')
                 ntss = np.loadtxt('%s/%s%s_test_NTS total_error.txt' % (array_folder, save_prefix, i), delimiter=',')
             else:
                 gs = np.loadtxt('%s/%s%s_test_All Genes_error.txt' % (array_folder, save_prefix, i), delimiter=',')
                 ntss = np.loadtxt('%s/%s%s_test_All NTS_error.txt' % (array_folder, save_prefix, i), delimiter=',')
             if 'size' not in save_prefix.lower() and 'netseq' not in save_prefix.lower():
-                if 'total' in save_prefix:
+                if 'total' in save_prefix and not 'notcr':
                     intergen = np.loadtxt(
                         '%s/%s%s_test_Intergenic regions_error.txt' % (array_folder, save_prefix, i),
                         delimiter=','
@@ -116,12 +116,12 @@ def main(args):
     i = 0
     while True and i < max_iter:
         i += 1
-        if 'total' in save_prefix or 'no_tcr' in save_prefix:
+        if 'total' in save_prefix or 'notcr' in save_prefix:
             if not os.path.isfile('%s/%s%s_random_test_Genes total_error.txt' % (array_folder, save_prefix, i))\
                     and not os.path.isfile('%s/%s%s_random_test_All NTS_error.txt' % (array_folder, save_prefix, i)):
                 continue
 
-            if 'total' in save_prefix:
+            if 'total' in save_prefix and not 'notcr':
                 randg_s = np.loadtxt(
                     '%s/%s%s_random_test_Genes total_error.txt'
                     % (array_folder, save_prefix, i),
@@ -145,7 +145,7 @@ def main(args):
                 )
 
             if 'size' not in save_prefix.lower() and 'netseq' not in save_prefix.lower():
-                if 'total' in save_prefix:
+                if 'total' in save_prefix and not 'notcr':
                     randigr = np.loadtxt(
                         '%s/%s%s_random_test_Intergenic regions_error.txt' % (array_folder, save_prefix, i),
                         delimiter=','
@@ -203,7 +203,7 @@ def main(args):
                     Line2D([0], [0], color=cpalette[-2], lw=4)]
     plt.figure(figsize=(8, 7))
     if 'size' not in save_prefix.lower() and 'netseq' not in save_prefix.lower():
-        if 'total' in save_prefix:
+        if 'total' in save_prefix and not 'notcr':
             data = [
                 gene_s, rand_gene_s,
                 nts_s, rand_nts_s,
@@ -219,7 +219,7 @@ def main(args):
 
             xticks = [.5, 2.5, 4.5]
             xtick_handles = ['Genes', 'NTS', 'IGR']
-        elif 'no_tcr' in save_prefix:
+        elif 'notcr' in save_prefix:
             data = [
                 gene_s, rand_gene_s,
                 nts_s, rand_nts_s,
@@ -256,7 +256,7 @@ def main(args):
             xticks = [.5, 2.5, 4.5, 6.5, 8.5, 10.5, 12.5]
             xtick_handles = ['Gene s', 'Gene c', 'Gene e', 'NTS s', 'NTS c', 'NTS e', 'IGR']
     else:
-        if 'total' in save_prefix or 'no_tcr' in save_prefix:
+        if 'total' in save_prefix or 'notcr' in save_prefix:
             data = [
                 gene_s, rand_gene_s,
                 nts_s, rand_nts_s,
