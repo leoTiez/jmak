@@ -48,7 +48,7 @@ def main(args):
     (_, _, _, start_igr, end_igr, transcriptome) = data
 
     trans_rmodels = list(filter(lambda x: 'gene' in x.name.lower() or 'nts' in x.name.lower(), region_model_list))
-    igr_rmodels = list(filter(lambda x: 'intergenic' in x.name.lower(), region_model_list))
+    igr_rmodels = list(filter(lambda x: 'intergenic' in x.name.lower() or 'igr' in x.name.lower(), region_model_list))
 
     if bio_type.lower() == 'netseq':
         # NET-seq data
