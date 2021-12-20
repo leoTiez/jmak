@@ -9,6 +9,14 @@ PY_DIM_POS = ['TT', 'CT', 'TC', 'CC']
 PY_DIM_NEG = ['AA', 'GA', 'AG', 'GG']
 
 
+def trim_data(data, rm_percentile=5, only_upper=True):
+    if only_upper:
+        lower, upper = np.percentile(data, [0, 100. - rm_percentile])
+    else:
+        lower, upper = np.percentile(data, [rm_percentile / 2., 100. - rm_percentile / 2.])
+    return data[np.logical_and(data > lower, data < upper)]
+
+
 def transform_path(path_string):
     if path_string[:5] != '/home' and path_string[0] != '~':
         path_prefix = os.getcwd()
@@ -364,7 +372,7 @@ def load_bio_data(
         if shuffle_data:
             np.random.shuffle(shuffle_idx)
 
-        return [np.asarray(d)[shuffle_idx] for d in data_list]
+        return [trim_data(np.asarray(d)[shuffle_idx], 5) for d in data_list]
 
     for num, path in enumerate(bw_paths):
         bw_paths[num] = transform_path(path)
