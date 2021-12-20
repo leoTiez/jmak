@@ -279,7 +279,7 @@ def main(args):
         temp_beta = np.asarray(list(rm.get_model_parameter('beta', do_filter=False)))
         mask = ~np.isnan(temp_m)
         mask = np.logical_and(temp_m < 6., mask)
-        mask = np.logical_and(temp_beta < .05, mask)
+        mask = np.logical_and(np.logical_and(temp_beta < .05, mask), temp_beta > 1. / 200.)
 
         rm.models = [model for num, model in enumerate(rm.models) if mask[num]]
         if load_if_exist:
