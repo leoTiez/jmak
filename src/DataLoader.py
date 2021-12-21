@@ -9,12 +9,16 @@ PY_DIM_POS = ['TT', 'CT', 'TC', 'CC']
 PY_DIM_NEG = ['AA', 'GA', 'AG', 'GG']
 
 
-def trim_data(data, rm_percentile=5, only_upper=True):
+def trim_data(data, rm_percentile=5, only_upper=True, return_mask=True):
     if only_upper:
         lower, upper = np.percentile(data, [0, 100. - rm_percentile])
     else:
         lower, upper = np.percentile(data, [rm_percentile / 2., 100. - rm_percentile / 2.])
-    return data[np.logical_and(data > lower, data < upper)]
+    mask = np.logical_and(data > lower, data < upper)
+    if return_mask:
+        return mask
+    else:
+        return data[mask]
 
 
 def transform_path(path_string):
@@ -71,7 +75,7 @@ def load_transcriptome(
         low_t_path='data/ref/trans_low.txt',
 ):
     def remove_dupl(df):
-        df = df.drop(columns=['Unnamed: 0', 'rr', 'pos'])
+        df = df.drop(columns=['Unnamed: 0', 'rr'])
         return df.drop_duplicates()
 
     high_t_path = transform_path(high_t_path)
@@ -315,6 +319,7 @@ def load_chrom_data(
     for is_transcriptome, t in zip(used_transcriptomes, [ht, mt, lt]):
         if is_transcriptome:
             transcriptome = transcriptome.append(t)
+    transcriptome = transcriptome.drop_duplicates()
     ref_genome = reader.load_fast(ref_genome_path, is_abs_path=True, is_fastq=False)
     bw_objs = []
     for bw in bw_list:
@@ -372,7 +377,7 @@ def load_bio_data(
         if shuffle_data:
             np.random.shuffle(shuffle_idx)
 
-        return [trim_data(np.asarray(d)[shuffle_idx], 5) for d in data_list]
+        return [np.asarray(d)[shuffle_idx] for d in data_list]
 
     for num, path in enumerate(bw_paths):
         bw_paths[num] = transform_path(path)
