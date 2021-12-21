@@ -78,7 +78,6 @@ class JMAK:
             min_f,
             max_f=1.,
             delta_f=.01,
-            fval_accuracy=1e-3,
             verbosity=0,
             figsize=(8, 7),
             save_fig=True,
@@ -90,7 +89,6 @@ class JMAK:
             raise ValueError('Fraction increase (delta f) must be lower than the difference between min_f and max_f and'
                              'greater than 0')
 
-        fval = []
         rsquared = []
         beta_est = []
         m_est = []
@@ -106,17 +104,16 @@ class JMAK:
             m, beta, rs, f = self._estimate_shape_scale(mf)
             if verbosity > 0:
                 print('Estimated parameters for maximum fraction %.2f are\nm=\t%.3f\nbeta=\t%.5f' % (mf, m, beta))
-                if verbosity > 1 and counter < num_cols * num_rows and not np.isnan(f):
+                if verbosity > 1 and counter < num_cols * num_rows and not np.isnan(rs):
                     self._plot_in_logspace(ax.reshape(-1)[counter], m=m, beta=beta, max_frac=mf)
                     ax.reshape(-1)[counter].set_title('Max fraction %.2f' % mf)
+                    ax_idx.append(num)
                     counter += 1
 
-            fval.append(f)
             rsquared.append(rs)
             beta_est.append(beta)
             m_est.append(m)
 
-        fval = np.asarray(fval)
         rsquared = np.asarray(rsquared)
         if np.all(np.isnan(rsquared)):
             self.m = None
@@ -129,9 +126,13 @@ class JMAK:
         self.m = np.asarray(m_est)[idx]
         self.max_frac = np.arange(min_f, max_f + delta_f, delta_f)[idx]
 
+        if verbosity > 0:
+            print('Best maximum fraction is %.2f' % self.max_frac)
+
         if verbosity > 1:
-            if idx < num_cols * num_rows:
-                for spine in ax.reshape(-1)[idx].spines.values():
+            if idx in ax_idx:
+                ai = ax_idx.index(idx)
+                for spine in ax.reshape(-1)[ai].spines.values():
                     spine.set_edgecolor('red')
 
             fig.suptitle('Model %s' % self.name)
