@@ -24,6 +24,11 @@ def main():
             else:
                 bi = ''
 
+            if bt == 'nucl':
+                rm_percentile = 0.
+            else:
+                rm_percentile = 5.
+
             for i in range(1, num_trials + 1):
                 if include_lin:
                     # Lin
@@ -33,6 +38,7 @@ def main():
                               '--bio_index=%s '
                               '--ml_type=lin '
                               '--num_classes=%s '
+                              '--rm_percentile=%s '
                               '%s '
                               '%s '
                               '--save_prefix=%s%s_lin_%s%s '
@@ -44,6 +50,7 @@ def main():
                                   bt,
                                   bi,
                                   num_classes,
+                                  rm_percentile,
                                   '--do_each' if do_each else '',
                                   '--no_tcr' if no_tcr else '',
                                   'notcr_' if no_tcr else '',
@@ -57,6 +64,7 @@ def main():
                               '--bio_index=%s '
                               '--ml_type=lin '
                               '--num_classes=%s '
+                              '--rm_percentile=%s '
                               '%s '
                               '%s '
                               '--neg_random '
@@ -69,6 +77,7 @@ def main():
                                   bt,
                                   bi,
                                   num_classes,
+                                  rm_percentile,
                                   '--do_each' if do_each else '',
                                   '--no_tcr' if no_tcr else '',
                                   'notcr_' if no_tcr else '',
@@ -84,6 +93,7 @@ def main():
                               '--bio_index=%s '
                               '--ml_type=knn '
                               '--num_classes=%s '
+                              '--rm_percentile=%s '
                               '--kneighbour=%s '
                               '%s '
                               '%s '
@@ -96,6 +106,7 @@ def main():
                                   bt,
                                   bi,
                                   num_classes,
+                                  rm_percentile,
                                   kneighbour,
                                   '--do_each' if do_each else '',
                                   '--no_tcr' if no_tcr else '',
@@ -111,6 +122,7 @@ def main():
                               '--bio_index=%s '
                               '--ml_type=knn '
                               '--num_classes=%s '
+                              '--rm_percentile=%s '
                               '--kneighbour=%s '
                               '%s '
                               '%s '
@@ -124,6 +136,7 @@ def main():
                                   bt,
                                   bi,
                                   num_classes,
+                                  rm_percentile,
                                   kneighbour,
                                   '--do_each' if do_each else '',
                                   '--no_tcr' if no_tcr else '',
