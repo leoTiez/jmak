@@ -7,7 +7,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pickle
 
-from src.DataLoader import load_chrom_data, load_chrom_split, load_bio_data, load_meres
+from src.DataLoader import load_chrom_data, load_chrom_split, load_bio_data, load_meres, trim_data
 from src.UtilsMain import create_models, argparse_predict
 from src.Utils import validate_dir, frequency_bins
 from src.Model import RegionModel
@@ -164,6 +164,10 @@ def main(args):
     num_classes = args.num_classes
     k_neighbours = args.kneighbour
     no_tcr = args.no_tcr
+    m_min = args.min_m
+    m_max = args.max_m
+    beta_min = args.min_beta
+    beta_max = args.max_beta
     used_transcriptoms = [True, False, False] if not no_tcr else [True, True, True]
     num_bins = 3 if not no_tcr else 1
     test_ratio = .3
@@ -275,13 +279,7 @@ def main(args):
     for rm, traind in train_data:
         if verbosity > 0:
             print('Create parameter mapping for model %s' % rm.name)
-        temp_m = np.asarray(list(rm.get_model_parameter('m', do_filter=False)))
-        temp_beta = np.asarray(list(rm.get_model_parameter('beta', do_filter=False)))
-        mask = ~np.isnan(temp_m)
-        mask = np.logical_and(temp_m < 6., mask)
-        mask = np.logical_and(np.logical_and(temp_beta < .05, mask), temp_beta > 1. / 200.)
 
-        rm.models = [model for num, model in enumerate(rm.models) if mask[num]]
         if load_if_exist:
             path = '%s/models' % os.getcwd()
             mfile_name = '%s/%s_%s_pickle_file_%s.pkl' % (path, save_prefix, rm.name, ml_type)
@@ -305,7 +303,7 @@ def main(args):
         if ml_type.lower() == 'gp':
             b_model = GPParameterMap(
                 rm,
-                bio_data=traind[mask],
+                bio_data=traind,
                 num_bins=num_classes,
                 randomise=neg_random,
                 rm_percentile=rm_percentile
@@ -314,7 +312,7 @@ def main(args):
         elif ml_type == 'lin':
             b_model = LinearParameterMap(
                 rm,
-                bio_data=traind[mask],
+                bio_data=traind,
                 num_bins=num_classes,
                 randomise=neg_random,
                 rm_percentile=rm_percentile,
@@ -322,7 +320,7 @@ def main(args):
         elif ml_type.lower() == 'knn':
             b_model = KNNParameterMap(
                 rm,
-                traind[mask],
+                traind,
                 k_neighbours=k_neighbours,
                 randomise=neg_random,
                 num_cpus=num_cpus,
@@ -373,8 +371,10 @@ def main(args):
             print('Predict model %s' % ml.rmodel.name)
         input_m, input_mf, input_beta = input_param[:, 0], input_param[:, 1], input_param[:, 2]
         mask = ~np.isnan(input_m)
-        mask = np.logical_and(input_m < 6., mask)
-        mask = np.logical_and(input_beta < .05, mask)
+        mask = np.logical_and(np.logical_and(input_m < m_max, mask), input_m > m_min)
+        mask = np.logical_and(np.logical_and(input_beta < beta_max, mask), input_beta > beta_min)
+        mask = np.logical_and(trim_data(testd, rm_percentile=rm_percentile, only_upper=True, return_mask=True), mask)
+
         params = np.asarray([input_m, input_mf, input_beta]).T[mask]
         mean_pred, var_pred = ml.estimate(params)
         ml.plot_error(
