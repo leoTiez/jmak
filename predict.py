@@ -241,13 +241,9 @@ def main(args):
                 fig, ax = plt.subplots(1, 2, figsize=(8, 7))
                 ax = ax.reshape(-1)
         for (rm, traind), a in zip(train_data, ax):
-            if bio_type.lower() not in ['netseq', 'nucl', 'abf1', 'h2a']:
-                val, _, _ = a.hist(traind, bins=100, label=rm.name, density=True)
-            else:
-                val, _, _ = a.hist(traind, bins=100, range=(0, 15), label=rm.name, density=True)
+            val, _, _ = a.hist(traind, bins=100, label=rm.name, density=True)
             bin_borders = frequency_bins(traind, 2)
             a.vlines(bin_borders[1], ymin=0, ymax=np.max(val), colors='red')
-
             a.set_title(rm.name)
         title_suffix = '' if not no_tcr else ' | No TCR'
         if bio_type.lower() == 'netseq':
@@ -268,7 +264,7 @@ def main(args):
         fig.suptitle(name)
         fig.tight_layout()
 
-        if not save_prefix:
+        if save_prefix:
             directory = validate_dir('figures/meta_distributions')
             suffix = '' if not no_tcr else '_notcr'
             plt.savefig('%s/%s_%s_distribution%s.png' % (directory, save_prefix, bio_type.lower(), suffix))
