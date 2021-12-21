@@ -22,7 +22,7 @@ from sklearn.mixture import GaussianMixture
 
 
 from src.Utils import validate_dir, frequency_bins
-from src.DataLoader import transform_path
+from src.DataLoader import transform_path, trim_data
 from src.Kernel import *
 from src.Model import RegionModel, JMAK
 
@@ -44,6 +44,10 @@ class ParameterMap(ABC):
             randomise=False,
             num_bins=50,
             val_frac=.2,
+            m_min=.5,
+            m_max=6.,
+            beta_min=1./200.,
+            beta_max=.05,
             rm_percentile=5.,
             random_state=None,
             verbosity=1
@@ -59,23 +63,20 @@ class ParameterMap(ABC):
         self.val_frac = val_frac
         self.random_state = random_state
         m_shape = np.asarray(list(self.rmodel.get_model_parameter('m')))
-        lower, upper = np.percentile(m_shape, [rm_percentile / 2., 100. - rm_percentile / 2.])
-        m_shape_mask = np.logical_and(m_shape > lower, m_shape < upper)
-
         max_frac = np.asarray(list(self.rmodel.get_model_parameter('max_frac')))
-        lower, upper = np.percentile(max_frac, [rm_percentile / 2., 100. - rm_percentile / 2.])
-        max_frac_mask = np.logical_and(max_frac > lower, max_frac < upper)
-
         beta = np.asarray(list(self.rmodel.get_model_parameter('beta')))
-        lower, upper = np.percentile(beta, [rm_percentile / 2., 100. - rm_percentile / 2.])
-        beta_mask = np.logical_and(beta > lower, beta < upper)
 
-        param_mask = np.logical_and(m_shape_mask, np.logical_and(max_frac_mask, beta_mask))
-        self.all_bio_data = bio_data[param_mask]
+        mask = ~np.isnan(m_shape)
+        mask = np.logical_and(np.logical_and(m_shape < m_max, mask), m_shape > m_min)
+        mask = np.logical_and(np.logical_and(beta < beta_max, mask), beta > beta_min)
+        mask = np.logical_and(trim_data(bio_data, rm_percentile=rm_percentile, only_upper=True, return_mask=True), mask)
 
-        m_shape, self.m_mean, self.m_std = ParameterMap.normalise(m_shape[param_mask])
-        max_frac, self.max_frac_mean, self.max_frac_std = ParameterMap.normalise(max_frac[param_mask])
-        beta, self.beta_mean, self.beta_std = ParameterMap.normalise(beta[param_mask])
+        self.rmodel.models = [model for num, model in enumerate(self.rmodel.models) if mask[num]]
+        self.all_bio_data = bio_data[mask]
+
+        m_shape, self.m_mean, self.m_std = ParameterMap.normalise(m_shape[mask])
+        max_frac, self.max_frac_mean, self.max_frac_std = ParameterMap.normalise(max_frac[mask])
+        beta, self.beta_mean, self.beta_std = ParameterMap.normalise(beta[mask])
 
         self.all_data_params = np.asarray([m_shape, max_frac, beta]).T
 
@@ -264,6 +265,10 @@ class GPParameterMap(ParameterMap):
             randomise=False,
             num_bins=10,
             val_frac=.2,
+            m_min=.5,
+            m_max=6.,
+            beta_min=1. / 200.,
+            beta_max=.05,
             rm_percentile=5.,
             random_state=None,
     ):
@@ -274,6 +279,10 @@ class GPParameterMap(ParameterMap):
             randomise=randomise,
             num_bins=num_bins,
             val_frac=val_frac,
+            m_min=m_min,
+            m_max=m_max,
+            beta_min=beta_min,
+            beta_max=beta_max,
             rm_percentile=rm_percentile,
             random_state=random_state
         )
@@ -307,6 +316,10 @@ class KNNParameterMap(ParameterMap):
             num_cpus=1,
             num_bins=10,
             val_frac=.2,
+            m_min=.5,
+            m_max=6.,
+            beta_min=1. / 200.,
+            beta_max=.05,
             rm_percentile=5.,
             random_state=None,
     ):
@@ -317,6 +330,10 @@ class KNNParameterMap(ParameterMap):
             randomise=randomise,
             num_bins=num_bins,
             val_frac=val_frac,
+            m_min=m_min,
+            m_max=m_max,
+            beta_min=beta_min,
+            beta_max=beta_max,
             rm_percentile=rm_percentile,
             random_state=random_state
         )
@@ -348,6 +365,10 @@ class LinearParameterMap(ParameterMap):
             randomise=False,
             num_bins=10,
             val_frac=.2,
+            m_min=.5,
+            m_max=6.,
+            beta_min=1. / 200.,
+            beta_max=.05,
             rm_percentile=5.,
             random_state=None,
     ):
@@ -358,6 +379,10 @@ class LinearParameterMap(ParameterMap):
             randomise=randomise,
             num_bins=num_bins,
             val_frac=val_frac,
+            m_min=m_min,
+            m_max=m_max,
+            beta_min=beta_min,
+            beta_max=beta_max,
             rm_percentile=rm_percentile,
             random_state=random_state
         )
