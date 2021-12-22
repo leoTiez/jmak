@@ -3,20 +3,19 @@ import multiprocessing
 
 
 def main():
-    bio_types = ['netseq', 'nucl', 'abf1', 'h2a', 'size', 'meres', 'rel_meres']
+    bio_types = ['netseq', 'nucl', 'abf1', 'h2a', 'size', 'rel_meres']
     num_classes = 2
     num_trials = 100
-    num_cpus = 35
+    num_cpus = 4
     include_lin = False
-    with multiprocessing.Pool(processes=num_cpus) as parallel:
-        for setup in range(2):
-            if setup == 0:
-                do_each = True
-                no_tcr = False
-            else:
-                do_each = False
-                no_tcr = True
-                
+    for setup in range(2):
+        if setup == 0:
+            do_each = True
+            no_tcr = False
+        else:
+            do_each = False
+            no_tcr = True
+        with multiprocessing.Pool(processes=num_cpus) as parallel:
             for bt in bio_types:
                 if bt == 'abf1':
                     bi = 'uv'
@@ -148,8 +147,8 @@ def main():
                                       i
                                   ), ))
 
-        parallel.close()
-        parallel.join()
+            parallel.close()
+            parallel.join()
 
 
 if __name__ == '__main__':
