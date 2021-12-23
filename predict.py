@@ -170,7 +170,8 @@ def main(args):
     beta_max = args.max_beta
     used_transcriptoms = [True, False, False] if not no_tcr else [True, True, True]
     num_bins = 3 if not no_tcr else 1
-    test_ratio = .3
+    test_ratio = args.test_ratio
+    use_mode = args.use_mode
 
     if verbosity > 0:
         print('Load CPD')
@@ -302,7 +303,8 @@ def main(args):
                 bio_data=traind,
                 num_bins=num_classes,
                 randomise=neg_random,
-                rm_percentile=rm_percentile
+                rm_percentile=rm_percentile,
+                use_mode=use_mode
             )
 
         elif ml_type == 'lin':
@@ -312,6 +314,7 @@ def main(args):
                 num_bins=num_classes,
                 randomise=neg_random,
                 rm_percentile=rm_percentile,
+                use_mode=use_mode
             )
         elif ml_type.lower() == 'knn':
             b_model = KNNParameterMap(
@@ -320,7 +323,9 @@ def main(args):
                 k_neighbours=k_neighbours,
                 randomise=neg_random,
                 num_cpus=num_cpus,
-                num_bins=num_classes
+                num_bins=num_classes,
+                rm_percentile=rm_percentile,
+                use_mode=use_mode
             )
         else:
             raise ValueError('ML type not understood.')
