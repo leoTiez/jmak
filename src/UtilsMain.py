@@ -225,7 +225,11 @@ def argparse_predict(arguments):
                         help='Minimum beta value that is used for finding and testing correlation.')
     parser.add_argument('--max_beta', type=float, default=.05,
                         help='Maximum beta value that is used for finding and testing correlation.')
-
+    parser.add_argument('--test_ratio', type=float, default=.3,
+                        help='Ratio of the test data vs training data')
+    parser.add_argument('--use_mode', action='store_true', dest='use_mode',
+                        help='If true and classification is set, use mode instead of frequency bins to determine '
+                             'high and low class')
     parsed_args = parser.parse_args(arguments)
     return parsed_args
 
