@@ -8,8 +8,12 @@ def main():
     num_trials = 100
     num_cpus = 35
     include_lin = False
-    for setup in range(2):
-        if setup == 0:
+    for setup in range(4):
+        if setup < 2:
+            use_mode = False
+        else:
+            use_mode = True
+        if setup % 2 == 0:
             do_each = True
             no_tcr = False
         else:
@@ -42,6 +46,7 @@ def main():
                                   '%s '
                                   '%s '
                                   '--save_prefix=%s%s_lin_%s%s '
+                                  '%s '
                                   '--save_fig '
                                   '--to_pickle '
                                   '--num_cpus=1 '
@@ -56,7 +61,8 @@ def main():
                                       'notcr_' if no_tcr else '',
                                       bt,
                                       'each' if do_each else 'total',
-                                      i
+                                      i,
+                                      '--use_mode' if use_mode else ''
                                   ), ))
                         parallel.apply_async(
                             os.system, ('python3.8 predict.py '
@@ -69,6 +75,7 @@ def main():
                                   '%s '
                                   '--neg_random '
                                   '--save_prefix=%s%s_lin_%s%s_random '
+                                  '%s '
                                   '--save_fig '
                                   '--to_pickle '
                                   '--num_cpus=1 '
@@ -83,7 +90,8 @@ def main():
                                       'notcr_' if no_tcr else '',
                                       bt,
                                       'each' if do_each else 'total',
-                                      i
+                                      i,
+                                      '--use_mode' if use_mode else ''
                                   ), ))
                     # kNN
                     for kneighbour in [5, 10, 20, 50, 100]:
@@ -98,6 +106,7 @@ def main():
                                   '%s '
                                   '%s '
                                   '--save_prefix=%s%s_knn%s_%s%s '
+                                  '%s '
                                   '--save_fig '
                                   '--to_pickle '
                                   '--num_cpus=1 '
@@ -114,7 +123,8 @@ def main():
                                       bt,
                                       kneighbour,
                                       'each' if do_each else 'total',
-                                      i
+                                      i,
+                                      '--use_mode' if use_mode else ''
                                   ), ))
                         parallel.apply_async(
                             os.system, ('python3.8 predict.py '
@@ -128,6 +138,7 @@ def main():
                                   '%s '
                                   '--neg_random '
                                   '--save_prefix=%s%s_knn%s_%s%s_random '
+                                  '%s '
                                   '--save_fig '
                                   '--to_pickle '
                                   '--num_cpus=1 '
@@ -144,7 +155,8 @@ def main():
                                       bt,
                                       kneighbour,
                                       'each' if do_each else 'total',
-                                      i
+                                      i,
+                                      '--use_mode' if use_mode else ''
                                   ), ))
 
             parallel.close()
