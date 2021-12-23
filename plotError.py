@@ -22,7 +22,7 @@ def main(args):
     title_biotype = args.title_biotype
     save_fig = args.save_fig
     rm_percentile = 20
-    p_thresh = .0001
+    p_thresh = .00001
 
     gene_s = np.empty(0)
     gene_c = np.empty(0)
@@ -213,9 +213,6 @@ def main(args):
             _, p_nts_s = ttest_ind(nts_s, rand_nts_s, alternative='less')
             _, p_igr = ttest_ind(igr, rand_igr, alternative='less')
             p_values = [p_gene_s, p_nts_s, p_igr]
-            palette = []
-            for p in p_values:
-                palette.extend([cpalette[3], cpalette[-2]] if p < p_thresh else [cpalette[0], cpalette[-2]])
 
             xticks = [.5, 2.5, 4.5]
             xtick_handles = ['Genes', 'NTS', 'IGR']
@@ -231,9 +228,6 @@ def main(args):
             _, p_igr = ttest_ind(igr, rand_igr, alternative='less')
             _, p_igr_minus = ttest_ind(igr_minus, rand_igr_minus, alternative='less')
             p_values = [p_gene_s, p_nts_s, p_igr, p_igr_minus]
-            palette = []
-            for p in p_values:
-                palette.extend([cpalette[3], cpalette[-2]] if p < p_thresh else [cpalette[0], cpalette[-2]])
             xticks = [.5, 2.5, 4.5, 6.5]
             xtick_handles = ['Genes', 'NTS', 'IGR +', 'IGR -']
         else:
@@ -250,9 +244,6 @@ def main(args):
             _, p_nts_e = ttest_ind(nts_e, rand_nts_e, alternative='less')
             _, p_igr = ttest_ind(igr, rand_igr, alternative='less')
             p_values = [p_gene_s, p_gene_c, p_gene_e, p_nts_s, p_nts_c, p_nts_e, p_igr]
-            palette = []
-            for p in p_values:
-                palette.extend([cpalette[3], cpalette[-2]] if p < p_thresh else [cpalette[0], cpalette[-2]])
             xticks = [.5, 2.5, 4.5, 6.5, 8.5, 10.5, 12.5]
             xtick_handles = ['Gene s', 'Gene c', 'Gene e', 'NTS s', 'NTS c', 'NTS e', 'IGR']
     else:
@@ -264,9 +255,6 @@ def main(args):
             _, p_gene_s = ttest_ind(gene_s, rand_gene_s, alternative='less')
             _, p_nts_s = ttest_ind(nts_s, rand_nts_s, alternative='less')
             p_values = [p_gene_s, p_nts_s]
-            palette = []
-            for p in p_values:
-                palette.extend([cpalette[3], cpalette[-2]] if p < p_thresh else [cpalette[0], cpalette[-2]])
             xticks = [.5, 2.5]
             xtick_handles = ['Genes', 'NTS']
         else:
@@ -281,11 +269,12 @@ def main(args):
             _, p_nts_c = ttest_ind(nts_c, rand_nts_c, alternative='less')
             _, p_nts_e = ttest_ind(nts_e, rand_nts_e, alternative='less')
             p_values = [p_gene_s, p_gene_c, p_gene_e, p_nts_s, p_nts_c, p_nts_e]
-            palette = []
-            for p in p_values:
-                palette.extend([cpalette[3], cpalette[-2]] if p < p_thresh else [cpalette[0], cpalette[-2]])
             xticks = [.5, 2.5, 4.5, 6.5, 8.5, 10.5]
             xtick_handles = ['Gene s', 'Gene c', 'Gene e', 'NTS s', 'NTS c', 'NTS e']
+    palette = []
+    for p, d in zip(p_values, data[::2]):
+        better_than_cf = np.sum(d < .5) / d.size >= .9
+        palette.extend([cpalette[3], cpalette[-2]] if p < p_thresh and better_than_cf else [cpalette[0], cpalette[-2]])
     ax = sns.violinplot(data=data, palette=palette)
     plt.plot([-.5, np.max(xticks) + 1], [0.5, 0.5], color=cpalette[-2], ls='--', alpha=.5)
     plt.setp(ax.collections, alpha=.2)
