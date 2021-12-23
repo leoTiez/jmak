@@ -5,6 +5,7 @@ from itertools import product, repeat
 import multiprocessing
 
 import numpy as np
+from scipy.stats import mode
 import matplotlib.pyplot as plt
 import mpl_toolkits.axisartist as AA
 import matplotlib.colors as cls
@@ -50,6 +51,7 @@ class ParameterMap(ABC):
             beta_max=.05,
             rm_percentile=5.,
             random_state=None,
+            use_mode=False,
             verbosity=1
     ):
         if len(rmodel.models) == 1:
@@ -84,10 +86,33 @@ class ParameterMap(ABC):
             np.random.shuffle(self.all_bio_data)
 
         if self.discretise_bio:
-            self.bio_bins = frequency_bins(self.all_bio_data, num_bins)
-            # Increase border of last bin to include last data point
-            self.bio_bins[-1] += .1
-            self.all_bio_data = np.digitize(self.all_bio_data, self.bio_bins).astype('int') - 1
+            if use_mode:
+                if num_bins > 2:
+                    warnings.warn('Use mode but number of classes is > 2. Set number to classes to 2.')
+                bio_mode = mode(self.all_bio_data).mode[0]
+                low_class_mask = self.all_bio_data < bio_mode
+                num_val_class = np.minimum(np.sum(low_class_mask), np.sum(~low_class_mask))
+                self.bio_bins = np.asarray([0, bio_mode, np.max(self.all_bio_data) + .1])
+                low_class_idc = np.arange(self.all_bio_data.size)[low_class_mask][
+                    np.random.choice(np.sum(low_class_mask), size=num_val_class, replace=False)]
+                high_class_idc = np.arange(self.all_bio_data.size)[~low_class_mask][
+                    np.random.choice(np.sum(~low_class_mask), size=num_val_class, replace=False)]
+                mask = np.zeros_like(self.all_bio_data, dtype='bool')
+                mask[low_class_idc] = True
+                mask[high_class_idc] = True
+                self.all_bio_data = self.all_bio_data[mask]
+                self.all_data_params = self.all_data_params[mask]
+            else:
+                self.bio_bins = frequency_bins(self.all_bio_data, num_bins)
+                # Increase border of last bin to include last data point
+                self.bio_bins[-1] += .1
+
+            self.all_bio_data = np.maximum(
+                np.minimum(
+                    np.digitize(self.all_bio_data, self.bio_bins).astype('int') - 1,
+                    num_bins - 1
+                ), 0
+            )
 
         self.data_params, self.data_params_val, self.bio_data, self.bio_data_val = None, None, None, None
         self.reshuffle()
@@ -203,7 +228,7 @@ class ParameterMap(ABC):
         divider = make_axes_locatable(ax1)
         cax = divider.append_axes('right', size='5%', pad=0.05)
         fig.colorbar(cbar, cax=cax, orientation='vertical')
-        ax1.set_title('Median absolut prediction error: %.1f' % np.median(mean - true_val))
+        ax1.set_title('Mean absolut prediction error: %.1f' % np.mean(mean - true_val))
         ax1.set_xlabel('PC 1')
         ax1.set_ylabel('PC 1')
         ax2 = plt.subplot2grid((3, 4), (0, 3), rowspan=2)
@@ -245,7 +270,7 @@ class ParameterMap(ABC):
             plt.show()
 
     def discretise(self, bio_data):
-        return np.maximum(np.minimum(np.digitize(bio_data, self.bio_bins) - 1, bio_data - 2), 0).astype('int')
+        return np.maximum(np.minimum(np.digitize(bio_data, self.bio_bins) - 1, np.max(self.all_bio_data)), 0).astype('int')
 
     def learn(self, verbosity=0):
         pass
@@ -270,6 +295,7 @@ class GPParameterMap(ParameterMap):
             beta_min=1. / 200.,
             beta_max=.05,
             rm_percentile=5.,
+            use_mode=False,
             random_state=None,
     ):
         super().__init__(
@@ -284,6 +310,7 @@ class GPParameterMap(ParameterMap):
             beta_min=beta_min,
             beta_max=beta_max,
             rm_percentile=rm_percentile,
+            use_mode=use_mode,
             random_state=random_state
         )
         self.gpr = GaussianProcessRegressor(kernel=RBF() + WhiteKernel(), random_state=random_state)
@@ -321,6 +348,7 @@ class KNNParameterMap(ParameterMap):
             beta_min=1. / 200.,
             beta_max=.05,
             rm_percentile=5.,
+            use_mode=False,
             random_state=None,
     ):
         super().__init__(
@@ -335,6 +363,7 @@ class KNNParameterMap(ParameterMap):
             beta_min=beta_min,
             beta_max=beta_max,
             rm_percentile=rm_percentile,
+            use_mode=use_mode,
             random_state=random_state
         )
         self.k_neighbours = k_neighbours
@@ -370,6 +399,7 @@ class LinearParameterMap(ParameterMap):
             beta_min=1. / 200.,
             beta_max=.05,
             rm_percentile=5.,
+            use_mode=False,
             random_state=None,
     ):
         super().__init__(
@@ -383,6 +413,7 @@ class LinearParameterMap(ParameterMap):
             m_max=m_max,
             beta_min=beta_min,
             beta_max=beta_max,
+            use_mode=use_mode,
             rm_percentile=rm_percentile,
             random_state=random_state
         )
