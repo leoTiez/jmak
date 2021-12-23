@@ -6,7 +6,7 @@ def main():
     bio_types = ['netseq', 'nucl', 'abf1', 'h2a', 'size', 'rel_meres']
     num_classes = 2
     num_trials = 100
-    num_cpus = 4
+    num_cpus = 35
     include_lin = False
     for setup in range(2):
         if setup == 0:
