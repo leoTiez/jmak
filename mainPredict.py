@@ -45,7 +45,7 @@ def main():
                                   '--rm_percentile=%s '
                                   '%s '
                                   '%s '
-                                  '--save_prefix=%s%s_lin_%s%s '
+                                  '--save_prefix=%s%s%s_lin_%s%s '
                                   '%s '
                                   '--save_fig '
                                   '--to_pickle '
@@ -58,6 +58,7 @@ def main():
                                       rm_percentile,
                                       '--do_each' if do_each else '',
                                       '--no_tcr' if no_tcr else '',
+                                      'mode_' if use_mode else '',
                                       'notcr_' if no_tcr else '',
                                       bt,
                                       'each' if do_each else 'total',
@@ -74,7 +75,7 @@ def main():
                                   '%s '
                                   '%s '
                                   '--neg_random '
-                                  '--save_prefix=%s%s_lin_%s%s_random '
+                                  '--save_prefix=%s%s%s_lin_%s%s_random '
                                   '%s '
                                   '--save_fig '
                                   '--to_pickle '
@@ -87,6 +88,7 @@ def main():
                                       rm_percentile,
                                       '--do_each' if do_each else '',
                                       '--no_tcr' if no_tcr else '',
+                                      'mode_' if use_mode else '',
                                       'notcr_' if no_tcr else '',
                                       bt,
                                       'each' if do_each else 'total',
@@ -105,7 +107,7 @@ def main():
                                   '--kneighbour=%s '
                                   '%s '
                                   '%s '
-                                  '--save_prefix=%s%s_knn%s_%s%s '
+                                  '--save_prefix=%s%s%s_knn%s_%s%s '
                                   '%s '
                                   '--save_fig '
                                   '--to_pickle '
@@ -119,6 +121,7 @@ def main():
                                       kneighbour,
                                       '--do_each' if do_each else '',
                                       '--no_tcr' if no_tcr else '',
+                                      'mode_' if use_mode else '',
                                       'notcr_' if no_tcr else '',
                                       bt,
                                       kneighbour,
@@ -137,7 +140,7 @@ def main():
                                   '%s '
                                   '%s '
                                   '--neg_random '
-                                  '--save_prefix=%s%s_knn%s_%s%s_random '
+                                  '--save_prefix=%s%s%s_knn%s_%s%s_random '
                                   '%s '
                                   '--save_fig '
                                   '--to_pickle '
@@ -151,6 +154,7 @@ def main():
                                       kneighbour,
                                       '--do_each' if do_each else '',
                                       '--no_tcr' if no_tcr else '',
+                                      'mode_' if use_mode else '',
                                       'notcr_' if no_tcr else '',
                                       bt,
                                       kneighbour,
