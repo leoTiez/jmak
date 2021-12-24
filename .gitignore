@@ -14,4 +14,3 @@ models
 *.err
 *.out
 arrays
-dataFormatter.py
