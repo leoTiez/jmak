@@ -423,12 +423,14 @@ class RegionModel:
             norm=cls.PowerNorm(power_norm),
             alpha=alpha
         )
-        plt.xlabel('m')
-        plt.ylabel('Maximum fraction')
-        plt.title('Parameter distribution %s %s' % (self.name, title_add))
+        plt.xlabel('m', fontsize=20)
+        plt.xticks(fontsize=16)
+        plt.yticks(fontsize=16)
+        plt.ylabel(r'$\theta$', fontsize=20)
+        plt.title('%s\n%s' % (self.name, title_add), fontsize=30)
         label_idx = np.linspace(np.min(cgrad), np.max(cgrad), 6, dtype='int')
         cbar = plt.colorbar(scatter, ticks=label_idx)
-        cbar.ax.set_yticklabels(['%.2f' % label for label in bins[label_idx - 1]])
+        cbar.ax.set_yticklabels(['%.2f' % label for label in bins[label_idx - 1]], fontsize=16)
 
         if add_beta_legend:
             handles, labels = scatter.legend_elements(
