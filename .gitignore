@@ -2,16 +2,20 @@
 /data
 /function
 /plots*
+
 *.pdf
 !Jupyter KJMA example.ipynb
 *Jupyter*
 .idea
 __pycache__
 figures
-!plots/data-grid*
+!figures/examples/experimental_setup.png
+!figures/examples/reorder*
 models
 /__pycache__
 /.vscode
 *.err
 *.out
 arrays
+*.png
+
