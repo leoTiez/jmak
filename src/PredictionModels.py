@@ -184,12 +184,13 @@ class ParameterMap(ABC):
             norm=cls.Normalize(vmin=np.min(self.bio_data), vmax=np.max(self.bio_data))
         )
 
-        plt.title('Learnt parameter map: %s' % self.rmodel.name)
-        plt.xlabel('PC 1')
-        plt.ylabel('PC 2')
+        plt.title('Learnt parameter map\n%s' % self.rmodel.name, fontsize=30)
+        plt.xlabel('PC 1', fontsize=20)
+        plt.ylabel('PC 2', fontsize=20)
         cbar = plt.colorbar(map_contour)
         cbar.set_alpha(1)
         cbar.draw_all()
+        plt.gcf().tight_layout()
 
         if save_fig:
             directory = validate_dir('figures/predict_models')
@@ -228,9 +229,9 @@ class ParameterMap(ABC):
         divider = make_axes_locatable(ax1)
         cax = divider.append_axes('right', size='5%', pad=0.05)
         fig.colorbar(cbar, cax=cax, orientation='vertical')
-        ax1.set_title('Mean absolut prediction error: %.1f' % np.mean(mean - true_val))
-        ax1.set_xlabel('PC 1')
-        ax1.set_ylabel('PC 1')
+        ax1.set_title('%s\nMean prediction error: %.1f' % (self.rmodel.name, np.mean(mean - true_val)), fontsize=30)
+        ax1.set_xlabel('PC 1', fontsize=20)
+        ax1.set_ylabel('PC 2', fontsize=20)
         ax2 = plt.subplot2grid((3, 4), (0, 3), rowspan=2)
         ax2.hist(
             mean - true_val,
@@ -238,8 +239,8 @@ class ParameterMap(ABC):
             range=cbar.get_clim(),
             orientation='horizontal'
         )
-        ax2.set_title('Deviance')
-        ax2.set_xlabel('#data')
+        ax2.set_title('Deviance', fontsize=24)
+        ax2.set_xlabel('#data', fontsize=20)
         ax2.set_yticks([])
         ax2.set_yticklabels([])
         ax2.spines['top'].set_visible(False)
@@ -253,9 +254,9 @@ class ParameterMap(ABC):
         error_name = 'Absolute error' if self.discretise_bio else 'MSE'
         error_dist = np.abs(true_val - mean) if self.discretise_bio else (true_val - mean)**2
         ax3.hist(error_dist, bins=num_bins)
-        ax3.set_title('%s: %.3f' % (error_name, error))
-        ax3.set_xlabel(error_name)
-        ax3.set_ylabel('#data')
+        ax3.set_title('%s: %.3f' % (error_name, error), fontsize=24)
+        ax3.set_xlabel(error_name, fontsize=20)
+        ax3.set_ylabel('#data', fontsize=20)
         fig.tight_layout()
         if save_fig:
             directory = validate_dir('figures/predict_models')
