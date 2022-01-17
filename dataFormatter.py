@@ -9,7 +9,6 @@ def main(args):
     array_folder = args.array_dir
     save_prefix = args.save_prefix
     max_iter = args.max_iter
-    # rm_percentile = args.rm_percentile
 
     gene_s = np.empty(0)
     gene_c = np.empty(0)
