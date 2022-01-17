@@ -1,10 +1,14 @@
 import argparse
 
+import numpy as np
+import matplotlib.pyplot as plt
+
 from src.Model import RegionModel
 from src.DataLoader import create_time_data
+from src.Utils import validate_dir
 
 
-def create_models(data, do_each=True, no_tcr=False):
+def create_models(data, do_each=True, no_tcr=False, verbosity=0, save_fig=True, save_prefix=''):
     (trans, ntrans, igr, start_igr, _, transcriptome) = data
     if do_each and not no_tcr:
         iter = zip(
@@ -93,6 +97,25 @@ def create_models(data, do_each=True, no_tcr=False):
             name=name
         )
         region_model.load_models(file_name, compare_chrom_list=chrom_list)
+        if verbosity > 4:
+            if 'genes' in name.lower():
+                example_genes = filter(lambda x: x.name in ['chrI YAL048C', 'chrVIII YHL025W'], region_model.models)
+                for gene in example_genes:
+                    plt.figure(figsize=(8, 7))
+                    plt.scatter(gene.time_points, gene.data_points, color='blue', label='Data')
+                    plt.plot(np.arange(140), gene.repair_fraction_over_time(140), 'b--', label='Estimation')
+                    plt.legend(loc='lower right', fontsize=20)
+                    plt.title('Repair evolution: %s' % gene.name, fontsize='30')
+                    plt.xticks(fontsize='16')
+                    plt.yticks(fontsize='16')
+                    plt.xlabel('Time (min)', fontsize='20')
+                    plt.ylabel('Repair fraction', fontsize='20')
+                    if save_fig:
+                        directory = validate_dir('figures/examples')
+                        plt.savefig('%s/repair_evolution_%s.png' % (directory, gene.name))
+                        plt.close('all')
+                    else:
+                        plt.show()
         model_list.append(region_model)
 
     return model_list
@@ -244,6 +267,8 @@ def argparse_errorplotter(arguments):
                              'Used for string based matching.')
     parser.add_argument('--array_dir', type=str, default='arrays',
                         help='Directory where arrays are stored.')
+    parser.add_argument('--pthresh', type=float, default=.00001,
+                        help='Significance threshold. Should be set between 0 and 1.')
     parser.add_argument('--max_iter', type=int, default=15,
                         help='Maximum number of experiments that are included.')
     parser.add_argument('--title_biotype', type=str, default='',
