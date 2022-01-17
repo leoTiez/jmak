@@ -178,7 +178,17 @@ def main(args):
     chrom_list = load_chrom_split()
 
     data = load_chrom_data(chrom_list=chrom_list, used_transcriptomes=used_transcriptoms, num_trans_bins=num_bins)
-    region_model_list = create_models(data, do_each=do_each, no_tcr=no_tcr)
+
+    if verbosity > 0:
+        print('Load models')
+    region_model_list = create_models(
+        data,
+        do_each=do_each,
+        no_tcr=no_tcr,
+        verbosity=verbosity,
+        save_fig=save_fig,
+        save_prefix=save_prefix
+    )
 
     (_, _, _, start_igr, end_igr, transcriptome) = data
 
