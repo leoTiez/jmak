@@ -3,6 +3,7 @@
 /function
 /plots*
 *.pdf
+!Jupyter KJMA example.ipynb
 *Jupyter*
 .idea
 __pycache__
