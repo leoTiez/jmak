@@ -203,7 +203,7 @@ def argparse_predict(arguments):
                         )
     parser.add_argument('--ml_type', type=str, required=True,
                         help='Define the applied machine learning approach which is used to find the parameter map. '
-                             'Possible are: nn | gp')
+                             'Possible are: knn | gp | lin')
     parser.add_argument('--neg_random', action='store_true', dest='neg_random',
                         help='If set, the biological feature data is randomly shuffled to create a negative control.')
     parser.add_argument('--do_each', action='store_true', dest='do_each',
@@ -269,10 +269,8 @@ def argparse_errorplotter(arguments):
                         help='Directory where arrays are stored.')
     parser.add_argument('--pthresh', type=float, default=.00001,
                         help='Significance threshold. Should be set between 0 and 1.')
-    parser.add_argument('--max_iter', type=int, default=15,
+    parser.add_argument('--max_iter', type=int, default=100,
                         help='Maximum number of experiments that are included.')
-    parser.add_argument('--title_biotype', type=str, default='',
-                        help='Set type of biological data that is used in the title of the plot.')
     parser.add_argument('--save_fig', action='store_true', dest='save_fig',
                         help='If set, created plot is saved to file instead of displayed.')
 
