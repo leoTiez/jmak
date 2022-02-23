@@ -18,4 +18,5 @@ models
 *.out
 arrays
 *.png
+convertData.py
 
