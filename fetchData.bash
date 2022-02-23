@@ -60,6 +60,15 @@ wigToBigWig seq/2h_A2_minus.wig.gz ref/chromSacCer.sizes seq/2h_A2_minus.bw
 wigToBigWig seq/2h_A2_plus.wig.gz ref/chromSacCer.sizes seq/2h_A2_plus.bw
 rm -rf seq/*.wig.gz
 
+# Download XR data from Li et al.
+# 5 min
+wget 'https://www.ncbi.nlm.nih.gov/geo/download/?acc=GSM3004374&format=file&file=GSM3004374%5FYCPD5MR1%5FCAACTA%5FS6%5FL002%5FR1%5F001%5Fclipped%5Fneg%5Fsorted%2Ebw' --output-document'seq/xr_5m_neg.bw'
+wget 'https://www.ncbi.nlm.nih.gov/geo/download/?acc=GSM3004374&format=file&file=GSM3004374%5FYCPD5MR1%5FCAACTA%5FS6%5FL002%5FR1%5F001%5Fclipped%5Fpos%5Fsorted%2Ebw' --output-document'seq/xr_5m_pos.bw'
+wget 'https://www.ncbi.nlm.nih.gov/geo/download/?acc=GSM3004376&format=file&file=GSM3004376%5FYCPD20MR1%5FATTCCT%5FS9%5FL002%5FR1%5F001%5Fclipped%5Fneg%5Fsorted%2Ebw' --output-document'seq/xr_20m_neg.bw'
+wget 'https://www.ncbi.nlm.nih.gov/geo/download/?acc=GSM3004376&format=file&file=GSM3004376%5FYCPD20MR1%5FATTCCT%5FS9%5FL002%5FR1%5F001%5Fclipped%5Fpos%5Fsorted%2Ebw' --output-document'seq/xr_20m_pos.bw'
+wget 'https://www.ncbi.nlm.nih.gov/geo/download/?acc=GSM3004378&format=file&file=GSM3004378%5FYCPD1HR1%5FCACGAT%5FS4%5FL002%5FR1%5F001%5Fclipped%5Fneg%5Fsorted%2Ebw' --output-document'seq/xr_60m_neg.bw'
+wget 'https://www.ncbi.nlm.nih.gov/geo/download/?acc=GSM3004378&format=file&file=GSM3004378%5FYCPD1HR1%5FCACGAT%5FS4%5FL002%5FR1%5F001%5Fclipped%5Fpos%5Fsorted%2Ebw' --output-document'seq/xr_60m_pos.bw'
+
 # Download netseq data from Harlen et al.
 wget 'https://www.ncbi.nlm.nih.gov/geo/download/?acc=GSM1673641&format=file&file=GSM1673641%5FWT%5FNETseq%5FYSC001%5FMinus%2Ebedgraph%2Egz' --output-document='seq/wt_netseq_minus.bedgraph.gz'
 wget 'https://www.ncbi.nlm.nih.gov/geo/download/?acc=GSM1673641&format=file&file=GSM1673641%5FWT%5FNETseq%5FYSC001%5FPlus%2Ebedgraph%2Egz' --output-document='seq/wt_netseq_plus.bedgraph.gz'
