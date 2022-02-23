@@ -106,7 +106,7 @@ def num_pydim_pos(chrom, bins, direct, dna_seq):
     return np.asarray(num_pydim), np.asarray(num_overlap)
 
 
-def normalise_data(trans, chrom, data, ref_genome, num_bins=3):
+def normalise_data(trans, chrom, data, ref_genome, num_bins=3, is_xr=False):
     def get_data(data, start, end, read, num_bins_=3):
         bins = np.round(np.linspace(start, end, num_bins_ + 1)).astype('int')
         if read == '+':
@@ -124,55 +124,86 @@ def normalise_data(trans, chrom, data, ref_genome, num_bins=3):
             add_last_value = True
         if read == '+':
             trans_mask_p[start:end] = True
-            bin_sum0h_1 = np.add.reduceat(data[1], bins)
-            bin_sum0h_2 = np.add.reduceat(data[5], bins)
-            bin_sum20m = np.add.reduceat(data[7], bins)
-            bin_sum1h = np.add.reduceat(data[3], bins)
-            bin_sum2h = np.add.reduceat(data[9], bins)
+            if not is_xr:
+                bin_sum0h_1 = np.add.reduceat(data[1], bins)
+                bin_sum0h_2 = np.add.reduceat(data[5], bins)
+                bin_sum20m = np.add.reduceat(data[7], bins)
+                bin_sum1h = np.add.reduceat(data[3], bins)
+                bin_sum2h = np.add.reduceat(data[9], bins)
+            else:
+                bin_sum5m = np.add.reduceat(data[1], bins)
+                bin_sum20m = np.add.reduceat(data[3], bins)
+                bin_sum1h = np.add.reduceat(data[5], bins)
         else:
             trans_mask_m[start:end] = True
-            bin_sum0h_1 = np.add.reduceat(data[0], bins)
-            bin_sum0h_2 = np.add.reduceat(data[4], bins)
-            bin_sum20m = np.add.reduceat(data[6], bins)
-            bin_sum1h = np.add.reduceat(data[2], bins)
-            bin_sum2h = np.add.reduceat(data[8], bins)
+            if not is_xr:
+                bin_sum0h_1 = np.add.reduceat(data[0], bins)
+                bin_sum0h_2 = np.add.reduceat(data[4], bins)
+                bin_sum20m = np.add.reduceat(data[6], bins)
+                bin_sum1h = np.add.reduceat(data[2], bins)
+                bin_sum2h = np.add.reduceat(data[8], bins)
+            else:
+                bin_sum5m = np.add.reduceat(data[0], bins)
+                bin_sum20m = np.add.reduceat(data[2], bins)
+                bin_sum1h = np.add.reduceat(data[4], bins)
 
         if add_last_value:
-            bin_sum0h_1[-2] += bin_sum0h_1[-1]
-            bin_sum0h_2[-2] += bin_sum0h_2[-1]
-            bin_sum20m[-2] += bin_sum20m[-1]
-            bin_sum1h[-2] += bin_sum1h[-1]
-            bin_sum2h[-2] += bin_sum2h[-1]
+            if not is_xr:
+                bin_sum0h_1[-2] += bin_sum0h_1[-1]
+                bin_sum0h_2[-2] += bin_sum0h_2[-1]
+                bin_sum20m[-2] += bin_sum20m[-1]
+                bin_sum1h[-2] += bin_sum1h[-1]
+                bin_sum2h[-2] += bin_sum2h[-1]
+            else:
+                bin_sum5m[-2] += bin_sum5m[-1]
+                bin_sum20m[-2] += bin_sum20m[-1]
+                bin_sum1h[-2] += bin_sum1h[-1]
 
-        bin_sum0h_1 = bin_sum0h_1[:-1]
-        bin_sum0h_2 = bin_sum0h_2[:-1]
-        bin_sum20m = bin_sum20m[:-1]
-        bin_sum1h = bin_sum1h[:-1]
-        bin_sum2h = bin_sum2h[:-1]
+        if not is_xr:
+            bin_sum0h_1 = bin_sum0h_1[:-1]
+            bin_sum0h_2 = bin_sum0h_2[:-1]
+            bin_sum20m = bin_sum20m[:-1]
+            bin_sum1h = bin_sum1h[:-1]
+            bin_sum2h = bin_sum2h[:-1]
 
-        cpd_0h_1 = np.nan_to_num(bin_sum0h_1 / denom)
-        cpd_0h_2 = np.nan_to_num(bin_sum0h_2 / denom)
-        cpd_20m = np.nan_to_num(bin_sum20m / denom)
-        cpd_1h = np.nan_to_num(bin_sum1h / denom)
-        cpd_2h = np.nan_to_num(bin_sum2h / denom)
+            cpd_0h_1 = np.nan_to_num(bin_sum0h_1 / denom)
+            cpd_0h_2 = np.nan_to_num(bin_sum0h_2 / denom)
+            cpd_20m = np.nan_to_num(bin_sum20m / denom)
+            cpd_1h = np.nan_to_num(bin_sum1h / denom)
+            cpd_2h = np.nan_to_num(bin_sum2h / denom)
+        else:
+            bin_sum5m = bin_sum5m[:-1]
+            bin_sum20m = bin_sum20m[:-1]
+            bin_sum1h = bin_sum1h[:-1]
+            sizes = bins[1:] - bins[:-1]
+            cpd_5m = np.nan_to_num(bin_sum5m / sizes)
+            cpd_20m = np.nan_to_num(bin_sum20m / sizes)
+            cpd_1h = np.nan_to_num(bin_sum1h / sizes)
 
         if read == '+':
-            cpd_0h_1 = np.flip(cpd_0h_1)
-            cpd_0h_2 = np.flip(cpd_0h_2)
-            cpd_20m = np.flip(cpd_20m)
-            cpd_1h = np.flip(cpd_1h)
-            cpd_2h = np.flip(cpd_2h)
+            if not is_xr:
+                cpd_0h_1 = np.flip(cpd_0h_1)
+                cpd_0h_2 = np.flip(cpd_0h_2)
+                cpd_20m = np.flip(cpd_20m)
+                cpd_1h = np.flip(cpd_1h)
+                cpd_2h = np.flip(cpd_2h)
+            else:
+                cpd_5m = np.flip(cpd_5m)
+                cpd_20m = np.flip(cpd_20m)
+                cpd_1h = np.flip(cpd_1h)
+        if not is_xr:
+            rel_20m = (cpd_0h_2 - cpd_20m) / cpd_0h_2
+            rel_1h = (cpd_0h_1 - cpd_1h) / cpd_0h_1
+            rel_2h = (cpd_0h_2 - cpd_2h) / cpd_0h_2
 
-        rel_20m = (cpd_0h_2 - cpd_20m) / cpd_0h_2
-        rel_1h = (cpd_0h_1 - cpd_1h) / cpd_0h_1
-        rel_2h = (cpd_0h_2 - cpd_2h) / cpd_0h_2
+            # Enforce progressing repair. Negative repair is not possible
+            rel_20m = np.maximum(0, rel_20m)
+            rel_1h = np.maximum(rel_20m, rel_1h)
+            rel_2h = np.minimum(np.maximum(rel_1h, rel_2h), 1)
 
-        # Enforce progressing repair. Negative repair is not possible
-        rel_20m = np.maximum(0, rel_20m)
-        rel_1h = np.maximum(rel_20m, rel_1h)
-        rel_2h = np.minimum(np.maximum(rel_1h, rel_2h), 1)
-
-        return rel_20m, rel_1h, rel_2h
+            return rel_20m, rel_1h, rel_2h
+        else:
+            return cpd_5m, cpd_20m, cpd_1h
 
     def get_start_end_intergenic(intergenic_mask, borders):
         if intergenic_mask[0] == 0:
@@ -255,6 +286,7 @@ def load_chrom_data(
         num_trans_bins=3,
         ref_genome_path='data/ref/SacCer3.fa',
         shuffle_data=False,
+        is_xr=False
 ):
     def get_data(chrom_list):
         trans, non_trans, igr = [], [], []
@@ -267,7 +299,7 @@ def load_chrom_data(
             (
                 (t_20, t_60, t_120, nt_20, nt_60, nt_120, igr_20, igr_60, igr_120),
                 (start_igr, end_igr)
-            ) = normalise_data(transcriptome_chrom, chrom, chrom_data, ref_genome, num_bins=num_trans_bins)
+            ) = normalise_data(transcriptome_chrom, chrom, chrom_data, ref_genome, num_bins=num_trans_bins, is_xr=is_xr)
             trans.extend([t_20, t_60, t_120])
             non_trans.extend([nt_20, nt_60, nt_120])
             igr.extend([igr_20, igr_60, igr_120])
