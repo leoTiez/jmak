@@ -8,8 +8,19 @@ from src.DataLoader import create_time_data
 from src.Utils import validate_dir
 
 
-def create_models(data, do_each=True, no_tcr=False, verbosity=0, save_fig=True, save_prefix=''):
+def create_models(
+        data,
+        do_each=True,
+        no_tcr=False,
+        verbosity=0,
+        save_fig=True,
+        save_prefix='',
+        plot_derivative=False,
+        time_scale=140
+):
     (trans, ntrans, igr, start_igr, _, transcriptome) = data
+    repair_prediction = []
+    repair_derivative = []
     if do_each and not no_tcr:
         iter = zip(
             [
@@ -22,13 +33,13 @@ def create_models(data, do_each=True, no_tcr=False, verbosity=0, save_fig=True, 
                 igr
             ],
             [
-                'Genes start',
-                'Genes centre',
-                'Genes end',
-                'NTS start',
-                'NTS centre',
-                'NTS end',
-                'Intergenic regions'
+                'TCR region start (TS)',
+                'TCR region centre (TS)',
+                'TCR region end (TS)',
+                'TCR region start (NTS)',
+                'TCR region centre (NTS)',
+                'TCR region end (NTS)',
+                'Non-TCR region'
             ],
             [
                 'data/jmak/trans_start.csv',
@@ -44,7 +55,7 @@ def create_models(data, do_each=True, no_tcr=False, verbosity=0, save_fig=True, 
         iter = zip(
             [
                 trans,
-                trans,
+                ntrans,
                 igr
             ],
             [
@@ -62,7 +73,7 @@ def create_models(data, do_each=True, no_tcr=False, verbosity=0, save_fig=True, 
         iter = zip(
             [
                 trans,
-                trans,
+                ntrans,
                 igr[:, :, 0],
                 igr[:, :, 1]
             ],
@@ -99,23 +110,81 @@ def create_models(data, do_each=True, no_tcr=False, verbosity=0, save_fig=True, 
         region_model.load_models(file_name, compare_chrom_list=chrom_list)
         if verbosity > 4:
             if 'genes' in name.lower():
-                example_genes = filter(lambda x: x.name in ['chrI YAL048C', 'chrVIII YHL025W'], region_model.models)
-                for gene in example_genes:
-                    plt.figure(figsize=(8, 7))
-                    plt.scatter(gene.time_points, gene.data_points, color='blue', label='Data')
-                    plt.plot(np.arange(140), gene.repair_fraction_over_time(140), 'b--', label='Estimation')
-                    plt.legend(loc='lower right', fontsize=20)
-                    plt.title('Repair evolution: %s' % gene.name, fontsize='30')
-                    plt.xticks(fontsize='16')
-                    plt.yticks(fontsize='16')
-                    plt.xlabel('Time (min)', fontsize='20')
-                    plt.ylabel('Repair fraction', fontsize='20')
-                    if save_fig:
-                        directory = validate_dir('figures/examples')
-                        plt.savefig('%s/repair_evolution_%s.png' % (directory, gene.name))
-                        plt.close('all')
-                    else:
-                        plt.show()
+                if no_tcr:
+                    example_genes = filter(lambda x: x.name in ['chrI YAL048C', 'chrVIII YHL025W'], region_model.models)
+                    for gene in example_genes:
+                        plt.figure(figsize=(8, 7))
+                        plt.scatter(gene.time_points, gene.data_points, color='blue', label='Data')
+                        plt.plot(np.arange(140), gene.repair_fraction_over_time(140), 'b--', label='Estimation')
+                        if plot_derivative:
+                            plt.plot(
+                                np.arange(140),
+                                gene.repair_derivative_over_time(140),
+                                color='orange',
+                                linestyle='--',
+                                label='Derivative'
+                            )
+                        plt.legend(loc='center right', fontsize=20)
+                        plt.title('Repair evolution: %s' % gene.name, fontsize='30')
+                        plt.xticks(fontsize='16')
+                        plt.yticks(fontsize='16')
+                        plt.xlabel('Time (min)', fontsize='20')
+                        plt.ylabel('Repair fraction', fontsize='20')
+                        if save_fig:
+                            directory = validate_dir('figures/examples')
+                            plt.savefig('%s/%s_repair_evolution_%s.png' % (directory, save_prefix, gene.name))
+                            plt.close('all')
+                        else:
+                            plt.show()
+                else:
+                    print('Example plot for KJMA model only in no_tcr setup.')
+        if verbosity > 4:
+            repair_prediction = region_model.get_total_repair_fraction(time_scale)
+            repair_derivative = region_model.get_total_repair_derivative(time_scale)
+            x_time = np.arange(time_scale)
+            fig, ax1 = plt.subplots(figsize=(8, 7))
+            ax1.plot(x_time, np.nanmean(repair_prediction, axis=0), 'b--', label=r'$f(t)$')
+            ax1.fill_between(
+                x_time,
+                np.nanmean(repair_prediction, axis=0) - np.nanstd(repair_prediction, axis=0),
+                np.nanmean(repair_prediction, axis=0) + np.nanstd(repair_prediction, axis=0),
+                alpha=.2,
+                color='blue'
+            )
+
+            ax2 = ax1.twinx()
+            ax2.plot(
+                x_time,
+                np.nanmean(repair_derivative, axis=0),
+                linestyle='--',
+                color='orange',
+                label=r'10 x $df(t)$'
+            )
+            ax2.fill_between(
+                x_time,
+                np.nanmean(repair_derivative, axis=0) - np.nanstd(repair_derivative, axis=0),
+                np.nanmean(repair_derivative, axis=0) + np.nanstd(repair_derivative, axis=0),
+                alpha=.2,
+                color='orange'
+            )
+            # ax1.legend(loc='center right', fontsize=24)
+            ax1.tick_params(axis='x', labelsize=20)
+            ax1.tick_params(axis='y', labelsize=20)
+            ax2.tick_params(axis='y', labelsize=20)
+            ax1.set_xlabel('Time (min)', fontsize=24)
+            ax1.set_ylabel(r'$f(t)$', color='blue', fontsize=24)
+            ax2.set_ylabel(r'$df(t)$', color='orange', fontsize=24)
+
+            fig.suptitle('Repair in %s' % region_model.name, fontsize=32)
+            fig.tight_layout()
+
+            if save_fig:
+                directory = validate_dir('figures/examples')
+                plt.savefig('%s/%s_region_repair_evolution_%s.png' % (directory, save_prefix, region_model.name))
+                plt.close('all')
+            else:
+                plt.show()
+
         model_list.append(region_model)
 
     return model_list
@@ -273,6 +342,42 @@ def argparse_errorplotter(arguments):
                         help='Maximum number of experiments that are included.')
     parser.add_argument('--save_fig', action='store_true', dest='save_fig',
                         help='If set, created plot is saved to file instead of displayed.')
+
+    parsed_args = parser.parse_args(arguments)
+    return parsed_args
+
+
+def argparse_derivative(arguments):
+    parser = argparse.ArgumentParser(
+        description='Find the derivative and compare to XR'
+    )
+    parser.add_argument('--do_each', action='store_true', dest='do_each',
+                        help='If set, there is one model per region in each transcript. '
+                             'Otherwise beginning, centre of a gene and end are combined in one single model.')
+    parser.add_argument('--save_prefix', type=str, default='',
+                        help='Set identifying string that goes in front of every saved file name.')
+    parser.add_argument('--save_fig', action='store_true', dest='save_fig',
+                        help='If set, figures are saved instead of displayed.')
+    parser.add_argument('--num_cpus', type=int, default=1,
+                        help='Number of processes used for speeding up computations.')
+    parser.add_argument('--verbosity', type=int, default=0,
+                        help='Verbosity level.')
+    parser.add_argument('--time_scale', type=int, default=140,
+                        help='Time scale for which the repair dynamics are computed. Default is 140 minutes.')
+    parser.add_argument('--no_tcr', action='store_true', dest='no_tcr',
+                        help='If set, programme does not distinguish between TCR and rest.')
+    parser.add_argument('--min_m', type=float, default=.5,
+                        help='Minimum m value that is used for finding and testing correlation.')
+    parser.add_argument('--max_m', type=float, default=6.,
+                        help='Maximum m value that is used for finding and testing correlation.')
+    parser.add_argument('--min_beta', type=float, default=1. / 200.,
+                        help='Minimum beta value that is used for finding and testing correlation.')
+    parser.add_argument('--max_beta', type=float, default=.05,
+                        help='Maximum beta value that is used for finding and testing correlation.')
+    parser.add_argument('--plt_dc', action='store_true', dest='plt_dc',
+                        help='If set, distance correlation is printed in the plot. Otherwise it is given as an'
+                             'output in the console.'
+                        )
 
     parsed_args = parser.parse_args(arguments)
     return parsed_args
