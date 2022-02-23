@@ -15,6 +15,7 @@ def main(args):
     array_folder = args.array_dir
     save_fig = args.save_fig
     p_thresh = args.pthresh
+    save_prefix = args.save_prefix
 
     xticks = [.5, 2.5, 4.5, 6.5, 8.5, 10.5, 12.5]
     cpalette = sns.color_palette()
@@ -50,8 +51,8 @@ def main(args):
                 elif bt == 'rel_meres':
                     bt_name = 'Relative meres'
 
-                save_prefix = '%s/all_%s%s%s_knn%s_%s' % (array_folder, mode_prefix, notcr_prefix, bt, knn, type_string)
-                filtered_files = glob.glob('%s*' % save_prefix)
+                save_names = '%s/all_%s%s%s_knn%s_%s' % (array_folder, mode_prefix, notcr_prefix, bt, knn, type_string)
+                filtered_files = glob.glob('%s*' % save_names)
 
                 gene_s = np.empty(0)
                 gene_c = np.empty(0)
@@ -76,7 +77,7 @@ def main(args):
                 rand_igr_minus = np.empty(0)
 
                 plt.figure(figsize=(8, 7))
-                print(save_prefix)
+                print(save_names)
 
                 for ff in filtered_files:
                     values = np.loadtxt(ff)
@@ -155,8 +156,8 @@ def main(args):
                 plt.yticks(fontsize=16)
                 if save_fig:
                     directory = validate_dir('figures/total_error_dist')
-                    save_prefix = '%s%s%s_knn%s_%s' % (mode_prefix, notcr_prefix, bt, knn, type_string)
-                    plt.savefig('%s/compare_error_dist_%s.png' % (directory, save_prefix))
+                    save_suffix = '%s%s%s_knn%s_%s' % (mode_prefix, notcr_prefix, bt, knn, type_string)
+                    plt.savefig('%s/%s_compare_error_dist_%s.png' % (directory, save_prefix, save_suffix))
                     plt.close('all')
                 else:
                     plt.show()
