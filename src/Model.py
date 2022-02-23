@@ -48,8 +48,23 @@ class JMAK:
 
         return (1 - np.exp(- np.power(self.beta * time, self.m))) * self.max_frac
 
+    def repair_derivative(self, time):
+        if self.m is None or self.max_frac is None or self.beta is None:
+            raise ValueError(
+                'Model parameters have not been set.\n'
+                'Run estimate_parameters to fit the model to the data, or set the parameters manually'
+            )
+
+        return (
+                self.max_frac * self.m * self.beta**self.m * time**(self.m - 1)
+                * (1 - self.repair_fraction(time) / self.max_frac)
+        )
+
     def repair_fraction_over_time(self, to_time):
         return np.asarray([self.repair_fraction(t) for t in np.arange(to_time)])
+
+    def repair_derivative_over_time(self, to_time):
+        return np.asarray([self.repair_derivative(t) for t in np.arange(to_time)])
 
     def _estimate_shape_scale(self, max_frac):
         if np.any(max_frac < self.data_points):
@@ -248,6 +263,12 @@ class RegionModel:
             all_rf.append(model.repair_fraction_over_time(to_time=time_scale))
         return np.asarray(all_rf)
 
+    def get_total_repair_derivative(self, time_scale):
+        all_rd = []
+        for model in self.models:
+            all_rd.append(model.repair_derivative_over_time(to_time=time_scale))
+        return np.asarray(all_rd)
+
     def get_model_parameter(self, identifier='m', do_filter=True):
         if identifier == 'm':
             m_map = map(lambda x: x.m, self.models)
@@ -423,6 +444,8 @@ class RegionModel:
             norm=cls.PowerNorm(power_norm),
             alpha=alpha
         )
+        if m_range is not None:
+            plt.xlim(m_range)
         plt.xlabel('m', fontsize=20)
         plt.xticks(fontsize=16)
         plt.yticks(fontsize=16)
