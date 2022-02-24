@@ -69,14 +69,14 @@ def plot_correlation(
     )
 
     if plt_dc:
-        plt.legend([
+        lgd = plt.legend([
             '5m, DC: %.3f' % corr_5m,
             '20m, DC: %.3f' % corr_20m,
             '60m, DC: %.3f' % corr_60m,
             ], loc='center left', bbox_to_anchor=(1, 0.5), fontsize=24)
         title_str = 'XR vs %s\nTotal correlation: %.3f' % ('relative repair' if is_cpd else 'KJMA', corr_total)
     else:
-        plt.legend(['5m', '20m', '60m'], fontsize=24)
+        lgd = plt.legend(['5m', '20m', '60m'], fontsize=24)
         title_str = 'XR vs %s' % ('relative repair' if is_cpd else 'KJMA')
         print(
             '5m, DC: %.3f\t' % corr_5m,
@@ -85,6 +85,8 @@ def plot_correlation(
             'Total correlation: %.3f' % corr_total
         )
 
+    for lh in lgd.legendHandles:
+        lh.set_alpha(1)
     plt.title(title_str, fontsize=32)
     plt.xlabel('XR', fontsize=24)
     plt.ylabel('Relative repair' if is_cpd else r'$\sqrt{d f(t)}$', fontsize=24)
