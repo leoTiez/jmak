@@ -19,6 +19,8 @@ def main(args):
     no_tcr = args.no_tcr
     used_transcriptoms = [True, False, False] if not no_tcr else [True, True, True]
     num_bins = 3 if not no_tcr else 1
+    incl_g5 = False
+    m_region = [(0, 5), (5, 10), (10, 15), (15, 20), (20, 25)] if incl_g5 else [(0, 5)]
 
     netseq_paths = [
         'data/seq/wt_netseq_minus.bw',
@@ -47,8 +49,8 @@ def main(args):
 
     (_, _, _, start_igr, end_igr, transcriptome) = data
 
-    trans_rmodels = list(filter(lambda x: 'gene' in x.name.lower() or 'nts' in x.name.lower(), region_model_list))
-    igr_rmodels = list(filter(lambda x: 'intergenic' in x.name.lower() or 'igr' in x.name.lower(), region_model_list))
+    trans_rmodels = list(filter(lambda x: 'ts' in x.name.lower() or 'nts' in x.name.lower(), region_model_list))
+    igr_rmodels = list(filter(lambda x: 'non-tcr' in x.name.lower() or 'igr' in x.name.lower(), region_model_list))
 
     if bio_type.lower() == 'netseq':
         # NET-seq data
@@ -63,7 +65,7 @@ def main(args):
 
         for tm in trans_rmodels:
             for netd in netseq_data:
-                for mr in [(0, 5), (5, 10), (10, 15), (15, 20), (20, 25)]:
+                for mr in m_region:
                     tm.plot_parameter_with_gradient(
                         netd,
                         cmap='PiYG',
@@ -98,7 +100,7 @@ def main(args):
 
         for tm in trans_rmodels:
             for sd, n in zip(nucl_data_trans, ['nouv', '0m', '30m']):
-                for mr in [(0, 5), (5, 10), (10, 15), (15, 20), (20, 25)]:
+                for mr in m_region:
                     tm.plot_parameter_with_gradient(
                         sd,
                         cmap='BrBG',
@@ -114,7 +116,7 @@ def main(args):
 
         for tm in igr_rmodels:
             for sd, n in zip(nucl_data_igr, ['nouv', '0m', '30m']):
-                for mr in [(0, 5), (5, 10), (10, 15), (15, 20), (20, 25)]:
+                for mr in m_region:
                     tm.plot_parameter_with_gradient(
                         sd,
                         cmap='BrBG',
@@ -133,7 +135,7 @@ def main(args):
         print('Size')
         size_list = np.abs(transcriptome['start'].to_numpy('int') - transcriptome['end'].to_numpy('int'))
         for tm in trans_rmodels:
-            for mr in [(0, 5), (5, 10), (10, 15), (15, 20), (20, 25)]:
+            for mr in m_region:
                 tm.plot_parameter_with_gradient(
                     size_list,
                     cmap='Spectral',
@@ -167,7 +169,7 @@ def main(args):
 
         for tm in trans_rmodels:
             for ad, n in zip(abf1_data_trans, ['nouv', '0m']):
-                for mr in [(0, 5), (5, 10), (10, 15), (15, 20), (20, 25)]:
+                for mr in m_region:
                     tm.plot_parameter_with_gradient(
                         ad,
                         cmap='PuOr',
@@ -183,7 +185,7 @@ def main(args):
 
         for tm in igr_rmodels:
             for ad, n in zip(abf1_data_igr, ['nouv', '0m']):
-                for mr in [(0, 5), (5, 10), (10, 15), (15, 20), (20, 25)]:
+                for mr in m_region:
                     tm.plot_parameter_with_gradient(
                         ad,
                         cmap='PuOr',
@@ -215,7 +217,7 @@ def main(args):
         )
 
         for tm in trans_rmodels:
-            for mr in [(0, 5), (5, 10), (10, 15), (15, 20), (20, 25)]:
+            for mr in m_region:
                 tm.plot_parameter_with_gradient(
                     h2aZ_data_trans[0],
                     cmap='coolwarm',
@@ -230,7 +232,7 @@ def main(args):
                 )
 
         for im in igr_rmodels:
-            for mr in [(0, 5), (5, 10), (10, 15), (15, 20), (20, 25)]:
+            for mr in m_region:
                 im.plot_parameter_with_gradient(
                     h2aZ_data_igr[0],
                     cmap='coolwarm',
@@ -298,7 +300,7 @@ def main(args):
 
         igr_diff_cen_tel = np.asarray(igr_diff_cen_tel)
         for tm in trans_rmodels:
-            for mr in [(0, 5), (5, 10), (10, 15), (15, 20), (20, 25)]:
+            for mr in m_region:
                 tm.plot_parameter_with_gradient(
                     trans_diff_cen_tel,
                     cmap='RdGy',
@@ -314,7 +316,7 @@ def main(args):
 
         igr_diff_cen_tel = np.asarray(igr_diff_cen_tel)
         for tm in igr_rmodels:
-            for mr in [(0, 5), (5, 10), (10, 15), (15, 20), (20, 25)]:
+            for mr in m_region:
                 tm.plot_parameter_with_gradient(
                     igr_diff_cen_tel,
                     cmap='RdGy',
