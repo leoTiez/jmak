@@ -108,6 +108,7 @@ def main(args):
     no_tcr = args.no_tcr
     verbosity = args.verbosity
     plt_dc = args.plt_dc
+    per_time = args.per_time
     no_5m = False
     used_transcriptoms = [True, False, False] if not no_tcr else [True, True, True]
     num_bins = 3 if not no_tcr else 1
@@ -199,11 +200,18 @@ def main(args):
     mask = np.logical_and(mask, mask_der)
     total_xr = np.concatenate(xr_data)[mask, :].reshape(np.sum(mask), -1)
     total_cpd = np.concatenate(cpd_data)[mask, :].reshape(np.sum(mask), -1)
-    total_cpd = np.vstack([
-        total_cpd[:, 0],
-        total_cpd[:, 1] - total_cpd[:, 0],
-        total_cpd[:, 2] - total_cpd[:, 1]
-    ])
+    if per_time:
+        total_cpd = np.vstack([
+            total_cpd[:, 0],
+            total_cpd[:, 1] - total_cpd[:, 0] / 2.,
+            total_cpd[:, 2] - total_cpd[:, 1] / 3.
+        ])
+    else:
+        total_cpd = np.vstack([
+            total_cpd[:, 0],
+            total_cpd[:, 1] - total_cpd[:, 0],
+            total_cpd[:, 2] - total_cpd[:, 1]
+        ])
     total_pred = np.vstack([
             pred_der_5m[mask],
             pred_der_20m[mask],
