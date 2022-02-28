@@ -166,6 +166,7 @@ class ParameterMap(ABC):
             levels=15,
             figsize=(8, 7),
             verbosity=0,
+            is_random=False,
             save_fig=True,
             save_prefix=''
     ):
@@ -184,7 +185,7 @@ class ParameterMap(ABC):
             norm=cls.Normalize(vmin=np.min(self.bio_data), vmax=np.max(self.bio_data))
         )
 
-        plt.title('Learnt parameter map\n%s' % self.rmodel.name, fontsize=30)
+        plt.title('Learnt parameter map\n%s%s' % (self.rmodel.name, ' random' if is_random else ''), fontsize=30)
         plt.xlabel('PC 1', fontsize=20)
         plt.ylabel('PC 2', fontsize=20)
         cbar = plt.colorbar(map_contour)
@@ -205,6 +206,7 @@ class ParameterMap(ABC):
             true_val,
             var,
             params,
+            is_random=False,
             convert_params=True,
             convert_val=True,
             save_fig=True,
@@ -229,7 +231,8 @@ class ParameterMap(ABC):
         divider = make_axes_locatable(ax1)
         cax = divider.append_axes('right', size='5%', pad=0.05)
         fig.colorbar(cbar, cax=cax, orientation='vertical')
-        ax1.set_title('%s\nMean prediction error: %.1f' % (self.rmodel.name, np.mean(mean - true_val)), fontsize=30)
+        ax1.set_title('%s%s\nMean prediction error: %.1f' % (
+            self.rmodel.name, ' random' if is_random else '', np.mean(mean - true_val)), fontsize=30)
         ax1.set_xlabel('PC 1', fontsize=20)
         ax1.set_ylabel('PC 2', fontsize=20)
         ax2 = plt.subplot2grid((3, 4), (0, 3), rowspan=2)
