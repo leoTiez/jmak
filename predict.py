@@ -205,7 +205,7 @@ def main(args):
     )
 
     if bio_type.lower() in ['netseq', 'size']:
-        region_model_list = list(filter(lambda x: 'gene' in x.name.lower() or 'nts' in x.name.lower(), region_model_list))
+        region_model_list = list(filter(lambda x: 'ts' in x.name.lower() or 'nts' in x.name.lower(), region_model_list))
     train_data, test_data = [], []
     for rm in region_model_list:
         mask = np.zeros(len(rm.models), dtype='bool')
@@ -215,7 +215,7 @@ def main(args):
         test_beta = np.asarray(list(rm.get_model_parameter('beta', do_filter=False)))[mask]
         rm.models = [jmak_model for num, jmak_model in enumerate(rm.models) if not mask[num]]
         test_params = np.asarray([test_m, test_mf, test_beta]).T
-        if 'gene' in rm.name.lower() or 'nts' in rm.name.lower():
+        if 'ts' in rm.name.lower() or 'nts' in rm.name.lower():
             traind, testd = trans_bio[~mask], trans_bio[mask]
         else:
             traind, testd = igr_bio[~mask], igr_bio[mask]
@@ -358,6 +358,7 @@ def main(args):
             save_fig=save_fig,
             save_prefix=save_prefix,
             plotted_dp=plotted_dp,
+            is_random=neg_random,
             levels=num_classes if ml_type.lower() in ['knn', 'lin'] else 15
         )
 
@@ -367,6 +368,7 @@ def main(args):
             b_model.bio_data,
             var,
             b_model.data_params,
+            is_random=neg_random,
             convert_params=False,
             convert_val=False,
             save_fig=save_fig,
