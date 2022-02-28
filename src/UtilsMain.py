@@ -78,7 +78,7 @@ def create_models(
                 igr[:, :, 1]
             ],
             [
-                'All Genes',
+                'All TS',
                 'All NTS',
                 'IGR Strand +',
                 'IGR Strand -',
@@ -377,6 +377,10 @@ def argparse_derivative(arguments):
     parser.add_argument('--plt_dc', action='store_true', dest='plt_dc',
                         help='If set, distance correlation is printed in the plot. Otherwise it is given as an'
                              'output in the console.'
+                        )
+    parser.add_argument('--per_time', action='store_true', dest='per_time',
+                        help='If set, differences between time points which are assumed to represent repair rate '
+                             'are calculated per time step'
                         )
 
     parsed_args = parser.parse_args(arguments)
