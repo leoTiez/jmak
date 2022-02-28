@@ -1,3 +1,5 @@
+import warnings
+
 import numpy as np
 import multiprocessing
 
@@ -221,6 +223,11 @@ class RegionModel:
             save_fig=save_fig,
             save_prefix=save_prefix
         )
+        if model.m is None or np.isnan(model.m):
+            if verbosity >= 0:
+                warnings.warn('Could not determine KJMA parameters.')
+                print('Name: ', n)
+                print('Data: ', data)
         return model
 
     def fit_models(
