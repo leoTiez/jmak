@@ -2,6 +2,7 @@
 import sys
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib.lines import Line2D
 import seaborn as sns
 from dcor import distance_correlation
 
@@ -200,6 +201,34 @@ def main(args):
     mask = np.logical_and(mask, mask_der)
     total_xr = np.concatenate(xr_data)[mask, :].reshape(np.sum(mask), -1)
     total_cpd = np.concatenate(cpd_data)[mask, :].reshape(np.sum(mask), -1)
+
+    if verbosity > 2:
+        pred_sample = np.asarray([m.repair_derivative_over_time(120) for m in region_model_list[0].models[:2]]).T
+        pred_sample /= np.max(pred_sample, axis=0)
+
+        xr_sample = total_xr[:2].T
+        xr_sample /= np.max(xr_sample, axis=0)
+        plt.figure(figsize=(8, 7))
+        plt.plot(pred_sample, linestyle='--', label='prediction')
+        plt.gca().set_prop_cycle(None)
+        plt.plot([5, 20, 60], xr_sample, 'o', label='XR')
+
+        plt.xlabel('Time t (min)', fontsize=24)
+        plt.ylabel('Rescaled repair rate', fontsize=24)
+        plt.xticks(fontsize=20)
+        plt.yticks(fontsize=20)
+        plt.title('Examples for repair derivatives', fontsize=32)
+        leg_elem = [Line2D([0], [0], color='black', lw=1, linestyle='--', label='Prediction'),
+                        Line2D([0], [0], color='black', lw=0, marker='o', label='XR')]
+        plt.legend(handles=leg_elem, loc='center right', fontsize=20)
+        plt.tight_layout()
+        if save_fig:
+            directory = validate_dir('figures/derivative')
+            plt.savefig('%s/%s_example_derivative_vs_xr.png' % (directory, save_prefix))
+            plt.close('all')
+        else:
+            plt.show()
+
     if per_time:
         total_cpd = np.vstack([
             total_cpd[:, 0],
