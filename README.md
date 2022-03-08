@@ -29,19 +29,7 @@ description on the KJMA model see
 [the material provided by the University of Utah](https://my.eng.utah.edu/~lzang/images/lecture-15.pdf).
 
 ![Pattern formation](figures/examples/reorder.png)
-![Pattern formation new repair](figures/examples/reorder_dt.png) 
-
-## Experimental Setups
-We distinguish between two schemes. The first categorises the data into transcribed strand (TS) and non-transcribed strand
-(NTS) as well as the plus and minus strand of intergenic regions (in the following referenced as
-*gene* setup). In the second approach we introduce the notion of transcription-coupled repair region 
-(TCR regions). They are defined as genes that exhibit more efficient repair than intergenic regions within 
-the first 20 minutes. We furthermore partition the TS and NTS of TCR regions into beginning 
-(in the following sometimes also called start), centre, and end. For the intergenic regions we combined both
-strands. All experiments that follow this design are named *TCR* setup. An example is given in 
-the figure below
-
-![Example TCR vs Gene setup](figures/examples/experimental_setup.png)
+![Pattern formation new repair](figures/examples/reorder_dt.png)
 
 ## Requirements and Installation
 The code requires `python3.8` if plotting is used. Otherwise any other python version >=3 should 
@@ -72,6 +60,38 @@ bash fetchData.bash
 It will also download the files in the required file structure and with the expected naming.
 If naming or file structure is changed, the code won't work.
 
+## Command Line Tool
+We developed a command line tool for an easy and intuitive use. It can be applied to any region in order to determine 
+the model parameters and to make predictions about the repair fraction for different time points. Results for the
+positive and negative strand are subsequently written to a file. Run
+
+```commandline
+python3.8 kjmaPrediction.py --chrom=chrVI --start=53260 --end=54696 [-t 15 30 45 55 90 --min_f=0.5 --max_f=1. --delta_f=0.01 --save_fig --save_prefix=test --num_cpus=1 --verbosity=1]
+```
+
+for the example of ACT1. 
+- `-t`: various time points
+- `--min_f`: minimum fraction of cells which are expected to repair all lesions in the region 
+- `--max_f`: maximum fraction of cells which are expected to repair all lesions in the region (recommended to be set to 1)
+- `--save_fig`: If verbosity parameter is set accordingly, produced figures are saved instead of displayed
+- `--save_prefix`: prefix that is added to the file name
+- `--num_cpus`: Number of CPUs used for the parameter estimation. As the computations are lightweight, a single CPU should be sufficient. A larger number is likely to result in higher overhead costs. The parameter is more important for the experimental setup to estimate parameters for a large number of regions
+- `--verbosity`: verbosity level expressed as an integer
+
+Commandline outputs starting with `###` are from the main script. Other lines that do not have this prefix are produced
+by subscripts.
+
+## Experimental Setups
+We distinguish between two schemes. The first categorises the data into transcribed strand (TS) and non-transcribed strand
+(NTS) as well as the plus and minus strand of intergenic regions (in the following referenced as
+*gene* setup). In the second approach we introduce the notion of transcription-coupled repair region 
+(TCR regions). They are defined as genes that exhibit more efficient repair than intergenic regions within 
+the first 20 minutes. We furthermore partition the TS and NTS of TCR regions into beginning 
+(in the following sometimes also called start), centre, and end. For the intergenic regions we combined both
+strands. All experiments that follow this design are named *TCR* setup. An example is given in 
+the figure below
+
+![Example TCR vs Gene setup](figures/examples/experimental_setup.png)
 
 ## Run the Code
 The code is divided into several scripts. Some of that some others were run before to create the
