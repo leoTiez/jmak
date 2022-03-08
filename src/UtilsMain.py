@@ -385,3 +385,34 @@ def argparse_derivative(arguments):
 
     parsed_args = parser.parse_args(arguments)
     return parsed_args
+
+
+def argparse_kjmapredict_param(arguments):
+    parser = argparse.ArgumentParser(
+        description='Make KJMA repair predictions for given area'
+    )
+    parser.add_argument('--chrom', type=str, required=True,
+                        help='Chromosome of the region of interest')
+    parser.add_argument('--start', type=int, required=True,
+                        help='Start coordinate of the region of interest')
+    parser.add_argument('--end', type=int, required=True,
+                        help='End coordinate of the region of interest')
+    parser.add_argument('-t', type=float, nargs='*', default=[45],
+                        help='List of prediction time points')
+    parser.add_argument('--min_f', type=float, default=.5,
+                        help='Minimum allowed value for maximum fraction '
+                             'during parameter search.')
+    parser.add_argument('--max_f', type=float, default=1.,
+                        help='Maximum allowed value for maximum fraction during parameter search.')
+    parser.add_argument('--delta_f', type=float, default=.01,
+                        help='Step size when increasing maximum fraction during parameter search.')
+    parser.add_argument('--num_cpus', type=int, default=1,
+                        help='Number of processes used for speeding up computations.')
+    parser.add_argument('--verbosity', type=int, default=2,
+                        help='Verbosity flag')
+    parser.add_argument('--save_fig', action='store_true', dest='save_fig',
+                        help='If set, figures are saved instead of displayed.')
+    parser.add_argument('--save_prefix', type=str, default='',
+                        help='Save prefix for files.')
+    parsed_args = parser.parse_args(arguments)
+    return parsed_args
