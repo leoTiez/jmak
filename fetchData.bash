@@ -77,6 +77,12 @@ bedGraphToBigWig seq/wt_netseq_minus.bedgraph.gz ref/chromSacCer.sizes seq/wt_ne
 bedGraphToBigWig seq/wt_netseq_plus.bedgraph.gz ref/chromSacCer.sizes seq/wt_netseq_plus.bw
 rm -rf seq/*.bedgraph.gz
 
+# Download Pol2 ChIP-seq data
+wget 'https://www.ebi.ac.uk/arrayexpress/files/E-MTAB-7081/E-MTAB-7081.processed.2.zip'
+unzip 'E-MTAB-7081.processed.2.zip'
+mv L5_8.BT2.SacCer3.RPM.Norm.bw seq/L5_8_chip_rpb1_med17wt.bw
+rm E-MTAB-7081.processed.2* L5_*
+
 # Download MNase, Abf1 and gamma H2A X data from van Eijk et al.
 wget 'ftp://ftp.sra.ebi.ac.uk/vol1/fastq/ERR236/002/ERR2367082/ERR2367082.fastq.gz' --output-document='seq/wt_abf1_nouv.fastq.gz'
 wget 'ftp://ftp.sra.ebi.ac.uk/vol1/fastq/ERR236/000/ERR2367080/ERR2367080.fastq.gz' --output-document='seq/wt_abf1_uv.fastq.gz'
