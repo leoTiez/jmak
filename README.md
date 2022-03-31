@@ -1,4 +1,4 @@
-# JMAK Model to Find the Relationship Between Cellular Properties and DNA Repair
+# KJMA Model to Find the Relationship Between Cellular Properties and DNA Repair
 
 ## Introduction
 Despite intensive research of DNA repair in eukaryotes, a scientific consensus about the 
@@ -11,6 +11,9 @@ to a variety of genomic features, including gene size, transcription rate, and n
 positioning. The method was capable of correctly correlating known factors as well
 as finding potential new candidates. It therefore represents a novel analytical framework 
 to identify nuclear processes that influence DNA repair.
+
+------
+*Update March 31, 2022*: The paper presenting and explaining the model has been uploaded on [bioRxiv](https://doi.org/10.1101/2022.03.29.486283). Please cite the work if you want to make use of the pipeline. 
 
 ## Linking JMAK to CPD Data
 We consider the following model. An abstract repair protein can randomly associate to any position in the DNA.
