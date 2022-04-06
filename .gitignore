@@ -20,3 +20,5 @@ arrays
 *.png
 convertData.py
 docs
+*.tsv
+src/seqdatahandler
