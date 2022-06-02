@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 import sys
 import numpy as np
-
 from src.DataLoader import load_chrom_data, load_chrom_split, load_bio_data, create_time_data, load_meres
 from src.Model import RegionModel
 from src.UtilsMain import argparse_bioplotter, create_models
@@ -17,6 +16,7 @@ def main(args):
     save_prefix = args.save_prefix
     use_sum = args.use_sum
     no_tcr = args.no_tcr
+    gradient_bins = args.g_bins
     used_transcriptoms = [True, False, False] if not no_tcr else [True, True, True]
     num_bins = 3 if not no_tcr else 1
     incl_g5 = False
@@ -77,6 +77,7 @@ def main(args):
                         power_norm=power_norm,
                         num_handles=8,
                         save_fig=save_fig,
+                        gradient_bins=gradient_bins,
                         save_prefix='%s_netseq_%s_%s' % (save_prefix, mr[0], mr[1])
                     )
 
@@ -111,6 +112,7 @@ def main(args):
                         size_power=size_power,
                         power_norm=power_norm,
                         save_fig=save_fig,
+                        gradient_bins=gradient_bins,
                         save_prefix='%s_nucl_%s_%s_%s' % (save_prefix, n, mr[0], mr[1])
                     )
 
@@ -127,6 +129,7 @@ def main(args):
                         size_power=size_power,
                         power_norm=power_norm,
                         save_fig=save_fig,
+                        gradient_bins=gradient_bins,
                         save_prefix='%s_nucl_%s_%s_%s' % (save_prefix, n, mr[0], mr[1])
                     )
 
@@ -146,6 +149,7 @@ def main(args):
                     size_power=size_power,
                     power_norm=power_norm,
                     save_fig=save_fig,
+                    gradient_bins=gradient_bins,
                     save_prefix='%s_size_%s_%s' % (save_prefix, mr[0], mr[1])
                 )
 
@@ -180,6 +184,7 @@ def main(args):
                         size_power=size_power,
                         power_norm=power_norm,
                         save_fig=save_fig,
+                        gradient_bins=gradient_bins,
                         save_prefix='%s_abf1_%s_%s_%s' % (save_prefix, n, mr[0], mr[1])
                     )
 
@@ -196,6 +201,7 @@ def main(args):
                         size_power=size_power,
                         power_norm=power_norm,
                         save_fig=save_fig,
+                        gradient_bins=gradient_bins,
                         save_prefix='%s_abf1_%s_%s_%s' % (save_prefix, n, mr[0], mr[1])
                     )
     elif bio_type.lower() == 'h2a':
@@ -228,6 +234,7 @@ def main(args):
                     size_power=size_power,
                     power_norm=power_norm,
                     save_fig=save_fig,
+                    gradient_bins=gradient_bins,
                     save_prefix='%s_h2az_%s_%s' % (save_prefix, mr[0], mr[1])
                 )
 
@@ -243,6 +250,7 @@ def main(args):
                     size_power=size_power,
                     power_norm=power_norm,
                     save_fig=save_fig,
+                    gradient_bins=gradient_bins,
                     save_prefix='%s_h2az_%s_%s' % (save_prefix, mr[0], mr[1])
                 )
 
@@ -311,6 +319,7 @@ def main(args):
                     size_power=size_power,
                     power_norm=power_norm,
                     save_fig=save_fig,
+                    gradient_bins=gradient_bins,
                     save_prefix='%s_meres_%s_%s' % (save_prefix, mr[0], mr[1])
                 )
 
@@ -327,6 +336,7 @@ def main(args):
                     size_power=size_power,
                     power_norm=power_norm,
                     save_fig=save_fig,
+                    gradient_bins=gradient_bins,
                     save_prefix='%s_%s_%s_%s' % (save_prefix, bio_type.lower(), mr[0], mr[1])
                 )
 
