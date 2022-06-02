@@ -8,7 +8,6 @@ import statsmodels.api as smapi
 import matplotlib.pyplot as plt
 import matplotlib.colors as cls
 from mpl_toolkits.axes_grid1 import make_axes_locatable, host_subplot
-from matplotlib.ticker import StrMethodFormatter
 
 from src.Utils import validate_dir, frequency_bins
 from src.DataLoader import transform_path
@@ -89,6 +88,9 @@ class JMAK:
             )
         else:
             return np.nan, np.nan, np.nan, np.nan
+
+    def score(self):
+        return np.sum((self.repair_fraction(self.time_points) - self.data_points)**2) / len(self.data_points)
 
     def estimate_parameters(
             self,
@@ -198,6 +200,64 @@ class JMAK:
             plt.show()
 
 
+class Hill:
+    def __init__(
+            self,
+            time_points,
+            data_points,
+            max_frac,
+            name='',
+            handle_stationary=False,
+            min_hill=.01
+    ):
+        self.time_points = np.asarray(time_points)
+        self.data_points = np.asarray(data_points)
+        self.max_frac = max_frac
+        if handle_stationary:
+            if np.all(self.data_points[-1] == self.data_points[-2]):
+                self.data_points = self.data_points[:-1]
+                self.time_points = self.time_points[:-1]
+        self.time_points = self.time_points.reshape(-1)
+        self.data_points = self.data_points.reshape(-1)
+        self.name = name
+        self.kd = None
+        self.hill_coeff = None
+        self.min_hill = min_hill
+        self.not_found = False
+
+    def repair_fraction(self, t, include_max_frac=True):
+        if (self.kd is None or self.hill_coeff is None) and not self.not_found:
+            raise ValueError('Parameters have not been estimated yet. Run the parameter estimation first')
+
+        if self.not_found:
+            raise ValueError('Parameters could not been found. Hill equation is not applicable')
+
+        if include_max_frac:
+            return (t**self.hill_coeff / (self.kd + t**self.hill_coeff)) * self.max_frac
+        else:
+            return t**self.hill_coeff / (self.kd + t**self.hill_coeff)
+
+    def estimate_parameters(self):
+        dp = self.data_points.copy() / self.max_frac
+        dp[dp == 1] -= np.finfo('float').eps
+        dp[dp == 0] += np.finfo('float').eps
+        lin_est = smapi.OLS(
+            np.log(dp / (1 - dp)),
+            smapi.add_constant(np.log(self.time_points))
+        )
+        result = lin_est.fit()
+
+        if result.params[1] > self.min_hill:
+            self.hill_coeff = result.params[1]
+            self.kd = np.exp(-result.params[0])
+        else:
+            warnings.warn('Could not find parameters for hill equation')
+            self.not_found = True
+
+    def score(self):
+        return np.sum((self.repair_fraction(self.time_points) - self.data_points)**2) / len(self.data_points)
+
+
 class RegionModel:
     def __init__(self, time_points, data_points, name=''):
         # Assume that data and time points are reshaped such that the time and data per each model are grouped
@@ -263,6 +323,9 @@ class RegionModel:
                 parallel.close()
                 parallel.join()
                 self.models = [ar.get() for ar in models]
+
+    def get_all_scores(self):
+        return [kjma.score() for kjma in self.models]
 
     def get_total_repair_fraction(self, time_scale):
         all_rf = []
@@ -409,6 +472,7 @@ class RegionModel:
             alpha=.7,
             num_handles=6,
             power_norm=1,
+            gradient_bins=50,
             title_add='',
             add_beta_legend=False,
             order_cgradient=True,
@@ -435,12 +499,11 @@ class RegionModel:
             return
 
         if order_cgradient:
-            bins = frequency_bins(cgradient, 50)
+            bins = frequency_bins(cgradient, gradient_bins)
             cgrad = np.digitize(cgradient, bins=bins)
         else:
             cgrad = cgradient
             bins = cgradient
-
         fig = plt.figure(figsize=figsize)
         scatter = plt.scatter(
             m,
