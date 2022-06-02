@@ -222,6 +222,36 @@ def argparse_jmak_param(arguments):
     return parsed_args
 
 
+def argparse_model_comp_param(arguments):
+    parser = argparse.ArgumentParser(
+        description='Compare different model performances.'
+    )
+    parser.add_argument('--do_each', action='store_true', dest='do_each',
+                        help='If set, there is one model per region in each transcript. '
+                             'Otherwise beginning, centre of a gene and end are combined in one single model.')
+    parser.add_argument('--verbosity', type=int, default=2,
+                        help='Verbosity flag')
+    parser.add_argument('--min_m', type=float, default=-1.,
+                        help='Filter for KJMA models with minimum m. Default -1 (no filtering).')
+    parser.add_argument('--max_m', type=float, default=-1,
+                        help='Filter for KJMA models with maximum m. Default -1 (no filtering).')
+    parser.add_argument('--min_beta', type=float, default=-1.,
+                        help='Filter for KJMA models with minimum beta. Default -1 (no filtering).')
+    parser.add_argument('--max_beta', type=float, default=-1.,
+                        help='Filter for KJMA models with maximum beta. Default -1 (no filtering).')
+    parser.add_argument('--save_fig', action='store_true', dest='save_fig',
+                        help='If set, figures are saved instead of displayed.')
+    parser.add_argument('--test', action='store_true', dest='test',
+                        help='Run test function for debugging.')
+    parser.add_argument('--no_tcr', action='store_true', dest='no_tcr',
+                        help='If set, programme does not distinguish between TCR and rest.')
+    parser.add_argument('--save_prefix', type=str, default='',
+                        help='Identifier for saved files.')
+
+    parsed_args = parser.parse_args(arguments)
+    return parsed_args
+
+
 def argparse_bioplotter(arguments):
     parser = argparse.ArgumentParser(
         description='Plot available biological data wrt the parameter space. Train the JMAK model and save'
@@ -250,6 +280,8 @@ def argparse_bioplotter(arguments):
                         help='Set identifying string that goes in front of every saved file name.')
     parser.add_argument('--no_tcr', action='store_true', dest='no_tcr',
                         help='If set, programme does not distinguish between TCR and rest.')
+    parser.add_argument('--g_bins', type=int, default=50,
+                        help='Number of bins for the colour gradient.')
 
     parsed_args = parser.parse_args(arguments)
     return parsed_args
