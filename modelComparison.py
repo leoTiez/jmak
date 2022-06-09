@@ -22,15 +22,17 @@ def plot_error_dist(kjma_score, hill_score, log_score, lin_score, name='', save_
     ax_non_lin = fig.add_subplot(gs[:3])
     ax_non_lin.violinplot([kjma_score, hill_score, log_score], showmedians=True)
     for num, med in enumerate([np.median(kjma_score), np.median(hill_score), np.median(log_score)]):
-        plt.text(num + 1.05, med + med * .2, '%.5f' % med)
+        plt.text(num + 1.05, med + med * .2, '%.5f' % med, fontsize=16)
     ax_non_lin.set_xticks(np.arange(1, 4))
     ax_non_lin.set_xticklabels(['KJMA', 'Hill', 'Logistic'], fontsize=18)
     ax_non_lin.set_ylabel('MSE', fontsize=18)
+    ax_non_lin.tick_params(axis='y', labelsize=16)
 
     ax_lin = fig.add_subplot(gs[3])
     ax_lin.violinplot([lin_score], showmedians=True)
     ax_lin.set_xticks([1])
     ax_lin.set_xticklabels(['Linear'], fontsize=18)
+    ax_lin.tick_params(axis='y', labelsize=16)
     ax_lin.set_ylim((0, 3))
     fig.suptitle('MSE %s' % name, fontsize=32)
     plt.tight_layout()
