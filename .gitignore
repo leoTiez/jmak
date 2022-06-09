@@ -22,3 +22,4 @@ convertData.py
 docs
 *.tsv
 src/seqdatahandler
+*.txt
