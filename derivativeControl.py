@@ -88,6 +88,7 @@ def plot_correlation(
 
     for lh in lgd.legendHandles:
         lh.set_alpha(1)
+        lh.set_sizes([300])
     plt.title(title_str, fontsize=32)
     plt.xlabel('XR', fontsize=24)
     plt.ylabel('Relative repair' if is_cpd else r'$\sqrt{d f(t)}$', fontsize=24)
