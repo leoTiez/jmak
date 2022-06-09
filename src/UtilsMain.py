@@ -109,7 +109,7 @@ def create_models(
         )
         region_model.load_models(file_name, compare_chrom_list=chrom_list)
         if verbosity > 4:
-            if 'genes' in name.lower():
+            if 'all ts' in name.lower():
                 if no_tcr:
                     example_genes = filter(lambda x: x.name in ['chrI YAL048C', 'chrVIII YHL025W'], region_model.models)
                     for gene in example_genes:
@@ -125,14 +125,41 @@ def create_models(
                                 label='Derivative'
                             )
                         plt.legend(loc='center right', fontsize=20)
-                        plt.title('Repair evolution: %s' % gene.name, fontsize='30')
-                        plt.xticks(fontsize='16')
-                        plt.yticks(fontsize='16')
-                        plt.xlabel('Time (min)', fontsize='20')
-                        plt.ylabel('Repair fraction', fontsize='20')
+                        plt.title('Repair evolution: %s' % gene.name, fontsize=30)
+                        plt.xticks(fontsize=16)
+                        plt.yticks(fontsize=16)
+                        plt.xlabel('Time (min)', fontsize=20)
+                        plt.ylabel('Repair fraction', fontsize=20)
                         if save_fig:
                             directory = validate_dir('figures/examples')
                             plt.savefig('%s/%s_repair_evolution_%s.png' % (directory, save_prefix, gene.name))
+                            plt.close('all')
+                        else:
+                            plt.show()
+
+                        dp = gene.data_points.copy()
+                        dp[dp == gene.max_frac] -= np.finfo('float').eps
+                        dp[dp == 0] += np.finfo('float').eps
+                        log_frac = np.log(np.log(1 / (1 - dp / gene.max_frac)))
+
+                        plt.figure(figsize=(8, 7))
+                        plt.scatter(np.log(gene.time_points), log_frac, color='blue', label='Data')
+                        plt.plot(
+                            np.log(gene.time_points),
+                            gene.m * np.log(gene.time_points) + gene.m * np.log(gene.beta),
+                            'b--',
+                            label='Estimation'
+                        )
+                        plt.legend(loc='lower right', fontsize=20)
+                        plt.title('Linear Regression Problem\n%s' % gene.name, fontsize=30)
+                        plt.xticks(fontsize=16)
+                        plt.yticks(fontsize=16)
+                        plt.xlabel(r'log($t$)', fontsize=20)
+                        plt.ylabel(r'$\ln\left(\ln\left( \frac{1}{1 - f(t) / \theta}\right)\right)$', fontsize=20)
+                        plt.tight_layout()
+                        if save_fig:
+                            directory = validate_dir('figures/examples')
+                            plt.savefig('%s/%s_repair_evolution_%s_linreg.png' % (directory, save_prefix, gene.name))
                             plt.close('all')
                         else:
                             plt.show()
