@@ -1,21 +1,49 @@
 # KJMA Model to Find the Relationship Between Cellular Properties and DNA Repair
 
 ## Introduction
-Despite intensive research of DNA repair in eukaryotes, a scientific consensus about the 
-dynamics *in vivo* is still lacking. In this study, we analyse nucleotide excision 
-repair kinetics using CPD sequencing data with a new data-driven approach that
-is accounting for temporal changes in the entire cell culture. We successfully adapted 
-and applied the physical Kolmogorov-Johnson–Mehl–Avrami (KJMA) equation to represent CPD 
-repair kinetics in *Saccharomyces cerevisiae*. The derived parameters could be linked 
-to a variety of genomic features, including gene size, transcription rate, and nucleosome 
-positioning. The method was capable of correctly correlating known factors as well
-as finding potential new candidates. It therefore represents a novel analytical framework 
-to identify nuclear processes that influence DNA repair.
+The great advances of sequencing technologies allow the *in vivo* measurement of nuclear processes---such as DNA repair 
+after UV exposure---over entire cell populations. However, data sets usually contain only a few samples over several 
+hours, missing possibly important information in between time points. We developed a data-driven approach to analyse CPD
+repair kinetics over time in *Saccharomyces cerevisiae*. In contrast to other studies that consider sequencing signals 
+as an average behaviour, we understand them as the superposition of signals from independent cells. By motivating repair
+as a stochastic process, we derive a minimal model for which the parameters can be conveniently estimated. We correlate 
+repair parameters to a variety of genomic features that are assumed to influence repair, including transcription rate 
+and nucleosome density. The clearest link was found for the transcription unit length, which has been unreported for 
+budding yeast to our knowledge. The framework hence allows a comprehensive analysis of nuclear processes on a population
+scale.
 
 ------
 *Update March 31, 2022*: The paper presenting and explaining the model has been uploaded on [bioRxiv](https://doi.org/10.1101/2022.03.29.486283). Please cite the work if you want to make use of the pipeline. 
 
-## Linking JMAK to CPD Data
+*Update June 20, 2022*: A revised version of the paper removing focus from the physical KJMA model and motivating the equations from a biological point of view is currently under review.
+
+## The Model
+We assume that NGS data represents the cumulative effect of independent cells. In a single cell, CPD damage describes
+the mispairing of two adjacent pyrimidine nucleobases. Consequently, there can be maximally one lesion per position. 
+This results in a zero-one (i.e. *damaged*-*repaired*) state space per position and per cell. During ongoing repair,
+lesions are removed, and positions change subsequently their state to *repaired*. It can be assumed that this process is
+stochastic and involves to some extent unpredictable noise. We assume that repair time distribution can be investigated 
+with a Poisson point process, which allows the derivation of a predictive function that expresses the probability of 
+repair over time. We conjecture that the dynamics are independent between cells. The CPD-seq data can be therefore 
+alternatively interpreted as a two-dimensional grid: one axis representing the cells and the other the nucleotide
+positions.
+
+![Sequencing to grid](figures/examples/seq_to_grid_text.png)
+
+We conjecture that repair proteins move through random Brownian motions (diffusion) to the 
+repair sites, subsequently associate to the DNA and remove the lesion. The entirety of this process can be understood as
+a mixture of two random processes: diffusion and waiting/repair. This allows the derivation of the following equation
+
+```math
+f(t) = \left(1 - \exp\left[-\left(\frac{t}{\tau}\right)^m\right]\right)\theta.
+```
+
+$`\tau`$ is the characteristic time until repair can be observed. An equation with a similar form to describe the phase 
+transition in solids was derived independently by Kolmogorov, Johnson and Mehl, and Avrami (KJMA or JMAK model).
+The equation can be conveniently converted to a linear regression problem.
+More interestingly, the KJMA model allows an alternative understanding of the data and the process.
+
+## An Alternative Understanding: Linking JMAK to CPD Data
 We consider the following model. An abstract repair protein can randomly associate to any position in the DNA.
 When bound to a lesion, the damage is repaired. This represents the collective work of the involved
 repair proteins without specifying the exact kinetics. Within a single cell, the probability of finding 
