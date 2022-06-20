@@ -2,8 +2,9 @@ import os
 import re
 import numpy as np
 import pandas as pd
-from datahandler import reader
 
+import pyBigWig
+from Bio import SeqIO
 
 PY_DIM_POS = ['TT', 'CT', 'TC', 'CC']
 PY_DIM_NEG = ['AA', 'GA', 'AG', 'GG']
@@ -352,10 +353,10 @@ def load_chrom_data(
         if is_transcriptome:
             transcriptome = transcriptome.append(t)
     transcriptome = transcriptome.drop_duplicates()
-    ref_genome = reader.load_fast(ref_genome_path, is_abs_path=True, is_fastq=False)
+    ref_genome = list(SeqIO.parse(ref_genome_path, 'fasta'))
     bw_objs = []
     for bw in bw_list:
-        bw_objs.append(reader.load_big_file(bw, rel_path='', is_abs_path=True))
+        bw_objs.append(pyBigWig.open(bw))
 
     return get_data(chrom_list)
 
@@ -416,7 +417,7 @@ def load_bio_data(
 
     bw_objs = []
     for bw in bw_paths:
-        bw_objs.append(reader.load_big_file(bw, rel_path='', is_abs_path=True))
+        bw_objs.append(pyBigWig.open(bw))
 
     # Prepare train data
     return get_data()
