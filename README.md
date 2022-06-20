@@ -1,4 +1,6 @@
-# KJMA Model to Find the Relationship Between Cellular Properties and DNA Repair
+# A Quantitative Modelling Approach for DNA Repair on a Population Scale
+
+[![DOI](https://zenodo.org/badge/429457913.svg)](https://zenodo.org/badge/latestdoi/429457913)
 
 ## Introduction
 The great advances of sequencing technologies allow the *in vivo* measurement of nuclear processes---such as DNA repair 
