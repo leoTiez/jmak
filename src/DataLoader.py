@@ -306,7 +306,7 @@ def load_chrom_data(
             igr.extend([igr_20, igr_60, igr_120])
             start_igr_list.extend([(chrom, int(s)) for s in start_igr])
             end_igr_list.extend([(chrom, int(e)) for e in end_igr])
-            data_transcriptome = data_transcriptome.append(transcriptome_chrom)
+            data_transcriptome = pd.concat([data_transcriptome, transcriptome_chrom], axis=0, join='outer')
 
         trans_20 = [i for k in trans[::3] for i in k]
         trans_60 = [i for k in trans[1::3] for i in k]
