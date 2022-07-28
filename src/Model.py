@@ -67,14 +67,18 @@ class JMAK:
     def repair_derivative_over_time(self, to_time):
         return np.asarray([self.repair_derivative(t) for t in np.arange(to_time)])
 
-    def _estimate_shape_scale(self, max_frac):
+    def _estimate_shape_scale(self, max_frac, d_thresh=1e-2):  # TODO
         if np.any(max_frac < self.data_points):
             return np.nan, np.nan, np.nan, np.nan
         dp = self.data_points.copy()
         dp[dp == max_frac] -= np.finfo('float').eps
         dp[dp == 0] += np.finfo('float').eps
+        dp[dp < d_thresh] = d_thresh
+        if dp[2] - dp[1] < d_thresh:
+            dp[2] += d_thresh
+        dp_log = np.log(np.log(1. / (1 - dp / max_frac)))
         lin_est = smapi.OLS(
-            np.log(np.log(1. / (1 - dp / max_frac))),
+            dp_log,
             smapi.add_constant(np.log(self.time_points))
         )
         result = lin_est.fit()
