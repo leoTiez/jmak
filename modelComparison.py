@@ -17,23 +17,17 @@ def sample_data(repair, n_dp=1000):
 
 
 def plot_error_dist(kjma_score, hill_score, log_score, lin_score, name='', save_fig=True, save_prefix=''):
-    fig = plt.figure(figsize=(8, 7), constrained_layout=False)
-    gs = fig.add_gridspec(nrows=1, ncols=4)
-    ax_non_lin = fig.add_subplot(gs[:3])
-    ax_non_lin.violinplot([kjma_score, hill_score, log_score], showmedians=True)
-    for num, med in enumerate([np.median(kjma_score), np.median(hill_score), np.median(log_score)]):
+    fig = plt.figure(figsize=(8, 7))
+    ax = fig.gca()
+    ax.violinplot([kjma_score, hill_score, log_score, lin_score], showmedians=True)
+    for num, med in enumerate(
+            [np.median(kjma_score), np.median(hill_score), np.median(log_score), np.median(lin_score)]):
         plt.text(num + 1.05, med + med * .2, '%.5f' % med, fontsize=16)
-    ax_non_lin.set_xticks(np.arange(1, 4))
-    ax_non_lin.set_xticklabels(['KJMA', 'Hill', 'Logistic'], fontsize=18)
-    ax_non_lin.set_ylabel('MSE', fontsize=18)
-    ax_non_lin.tick_params(axis='y', labelsize=16)
+    ax.set_xticks(np.arange(1, 5))
+    ax.set_xticklabels(['KJMA', 'Hill', 'Logistic', 'Linear'], fontsize=18)
+    ax.set_ylabel('MSE', fontsize=18)
+    ax.tick_params(axis='y', labelsize=16)
 
-    ax_lin = fig.add_subplot(gs[3])
-    ax_lin.violinplot([lin_score], showmedians=True)
-    ax_lin.set_xticks([1])
-    ax_lin.set_xticklabels(['Linear'], fontsize=18)
-    ax_lin.tick_params(axis='y', labelsize=16)
-    ax_lin.set_ylim((0, 3))
     fig.suptitle('MSE %s' % name, fontsize=32)
     plt.tight_layout()
     if save_fig:
@@ -143,7 +137,7 @@ def main(args):
                 d.ravel()
             )
             lin_pred = lin_model.predict([[20], [60], [120]])
-            lin_score.append(np.sum((lin_pred - 2)**2) / len(d))
+            lin_score.append(np.sum((lin_pred - d)**2) / len(d))
             lin_pred_l.append(lin_model.predict(np.arange(140).reshape(-1, 1)))
 
             if verbosity > 2:
