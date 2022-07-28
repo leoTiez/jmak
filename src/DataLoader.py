@@ -2,6 +2,7 @@ import os
 import re
 import numpy as np
 import pandas as pd
+import warnings
 
 import pyBigWig
 from Bio import SeqIO
@@ -297,10 +298,14 @@ def load_chrom_data(
         for chrom in chrom_list:
             chrom_data = [np.nan_to_num(d.values(chrom, 0, d.chroms(chrom))) for d in bw_objs]
             transcriptome_chrom = transcriptome[transcriptome['chr'] == chrom]
-            (
-                (t_20, t_60, t_120, nt_20, nt_60, nt_120, igr_20, igr_60, igr_120),
-                (start_igr, end_igr)
-            ) = normalise_data(transcriptome_chrom, chrom, chrom_data, ref_genome, num_bins=num_trans_bins, is_xr=is_xr)
+            with warnings.catch_warnings():
+                warnings.filterwarnings('ignore')
+                (
+                    (t_20, t_60, t_120, nt_20, nt_60, nt_120, igr_20, igr_60, igr_120),
+                    (start_igr, end_igr)
+                ) = normalise_data(transcriptome_chrom, chrom, chrom_data, ref_genome,
+                                   num_bins=num_trans_bins, is_xr=is_xr)
+
             trans.extend([t_20, t_60, t_120])
             non_trans.extend([nt_20, nt_60, nt_120])
             igr.extend([igr_20, igr_60, igr_120])
@@ -351,7 +356,7 @@ def load_chrom_data(
     transcriptome = pd.DataFrame(columns=ht.columns)
     for is_transcriptome, t in zip(used_transcriptomes, [ht, mt, lt]):
         if is_transcriptome:
-            transcriptome = transcriptome.append(t)
+            transcriptome = pd.concat([transcriptome, t])
     transcriptome = transcriptome.drop_duplicates()
     ref_genome = list(SeqIO.parse(ref_genome_path, 'fasta'))
     bw_objs = []
