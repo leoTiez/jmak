@@ -82,7 +82,7 @@ class JMAK:
         dp[dp == max_frac] -= np.finfo('float').eps
         dp[dp == 0] += np.finfo('float').eps
         if np.any(dp < d_thresh):
-            weights = np.asarray([.1, 3., 1.])
+            weights = np.asarray([1., 3., 2.])
             dp[dp < d_thresh] = d_thresh
 
         if dp[2] - dp[1] < d_thresh:
