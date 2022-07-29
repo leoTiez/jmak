@@ -23,3 +23,6 @@ docs
 *.tsv
 src/seqdatahandler
 *.txt
+*.def
+*.sif
+Pipfile*
