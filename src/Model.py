@@ -71,10 +71,7 @@ class JMAK:
     @staticmethod
     def _weighted_ls(log_time, data, weights):
         log_time = log_time.reshape(-1, 1)
-        try:
-            fit = LinearRegression(fit_intercept=True).fit(log_time, data, sample_weight=weights)
-        except:
-            print("WTF")
+        fit = LinearRegression(fit_intercept=True).fit(log_time, data, sample_weight=weights)
         return fit.coef_[0], np.exp(fit.intercept_ / fit.coef_[0]), fit.score(log_time, data)
 
     def _estimate_shape_scale(self, max_frac, d_thresh=1e-2):
