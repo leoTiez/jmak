@@ -5,6 +5,7 @@ import multiprocessing
 
 import pandas as pd
 import statsmodels.api as smapi
+from sklearn.linear_model import LinearRegression
 import matplotlib.pyplot as plt
 import matplotlib.colors as cls
 from mpl_toolkits.axes_grid1 import make_axes_locatable, host_subplot
@@ -67,31 +68,37 @@ class JMAK:
     def repair_derivative_over_time(self, to_time):
         return np.asarray([self.repair_derivative(t) for t in np.arange(to_time)])
 
-    def _estimate_shape_scale(self, max_frac, d_thresh=1e-2):  # TODO
-        if np.any(max_frac < self.data_points):
-            return np.nan, np.nan, np.nan, np.nan
+    @staticmethod
+    def _weighted_ls(log_time, data, weights):
+        log_time = log_time.reshape(-1, 1)
+        fit = LinearRegression(fit_intercept=True).fit(log_time, data, sample_weight=weights)
+        return fit.coef_[0], np.exp(fit.intercept_ / fit.coef_[0]), fit.score(log_time, data)
+
+    def _estimate_shape_scale(self, max_frac, d_thresh=1e-2):
+        if np.any(max_frac < self.data_points) or np.any(np.isnan(self.data_points)):
+            return np.nan, np.nan, np.nan
         dp = self.data_points.copy()
+        weights = np.ones(3)
         dp[dp == max_frac] -= np.finfo('float').eps
         dp[dp == 0] += np.finfo('float').eps
-        dp[dp < d_thresh] = d_thresh
+        if np.any(dp < d_thresh):
+            weights = np.asarray([.1, 3., 1.])
+            dp[dp < d_thresh] = d_thresh
+
         if dp[2] - dp[1] < d_thresh:
             dp[2] += d_thresh
-        dp_log = np.log(np.log(1. / (1 - dp / max_frac)))
-        lin_est = smapi.OLS(
-            dp_log,
-            smapi.add_constant(np.log(self.time_points))
-        )
-        result = lin_est.fit()
 
-        if result.params[1] > self.min_m:
-            return (
-                result.params[1],  # shape
-                np.exp(result.params[0] / result.params[1]),  # scale
-                result.rsquared_adj,  # R2
-                result.fvalue  # fvalue
-            )
+        if self.time_points.shape[0] == 6:
+            weights = np.repeat(weights, 2)
+        if np.any(max_frac < dp):
+            return np.nan, np.nan, np.nan
+
+        dp_log = np.log(np.log(1. / (1 - dp / max_frac)))
+        results = self._weighted_ls(np.log(self.time_points), dp_log, weights)
+        if results[0] > self.min_m:
+            return results
         else:
-            return np.nan, np.nan, np.nan, np.nan
+            return np.nan, np.nan, np.nan
 
     def score(self):
         return np.sum((self.repair_fraction(self.time_points) - self.data_points)**2) / len(self.data_points)
@@ -124,7 +131,8 @@ class JMAK:
         for num, mf in enumerate(np.arange(min_f, max_f + delta_f, delta_f)):
             if verbosity > 0:
                 print('Estimate parameters for maximum fraction set to %.2f' % mf)
-            m, beta, rs, f = self._estimate_shape_scale(mf)
+
+            m, beta, rs = self._estimate_shape_scale(mf)
             if verbosity > 0:
                 print('Estimated parameters for maximum fraction %.2f are\nm=\t%.3f\nbeta=\t%.5f' % (mf, m, beta))
                 if verbosity > 1 and counter < num_cols * num_rows and not np.isnan(rs):
