@@ -314,6 +314,10 @@ def main(args):
                 num_bins=num_classes,
                 randomise=neg_random,
                 rm_percentile=rm_percentile,
+                m_min=m_min,
+                m_max=m_max,
+                beta_min=beta_min,
+                beta_max=beta_max,
                 use_mode=use_mode
             )
 
@@ -324,6 +328,10 @@ def main(args):
                 num_bins=num_classes,
                 randomise=neg_random,
                 rm_percentile=rm_percentile,
+                m_min=m_min,
+                m_max=m_max,
+                beta_min=beta_min,
+                beta_max=beta_max,
                 use_mode=use_mode
             )
         elif ml_type.lower() == 'knn':
@@ -335,6 +343,10 @@ def main(args):
                 num_cpus=num_cpus,
                 num_bins=num_classes,
                 rm_percentile=rm_percentile,
+                m_min=m_min,
+                m_max=m_max,
+                beta_min=beta_min,
+                beta_max=beta_max,
                 use_mode=use_mode
             )
         else:
@@ -351,29 +363,30 @@ def main(args):
             pickle.dump(b_model, file=pfile)
             pfile.close()
 
-        if verbosity > 1:
+        if verbosity > 2:
             print('Plot parameter map')
-        b_model.plot_parameter_map(
-            verbosity=verbosity,
-            save_fig=save_fig,
-            save_prefix=save_prefix,
-            plotted_dp=plotted_dp,
-            is_random=neg_random,
-            levels=num_classes if ml_type.lower() in ['knn', 'lin'] else 15
-        )
+            b_model.plot_parameter_map(
+                verbosity=verbosity,
+                save_fig=save_fig,
+                save_prefix=save_prefix,
+                plotted_dp=plotted_dp,
+                is_random=neg_random,
+                levels=num_classes if ml_type.lower() in ['knn', 'lin'] else 15
+            )
 
         mean, var = b_model.estimate(b_model.data_params, convert_dp=False)
-        b_model.plot_error(
-            mean,
-            b_model.bio_data,
-            var,
-            b_model.data_params,
-            is_random=neg_random,
-            convert_params=False,
-            convert_val=False,
-            save_fig=save_fig,
-            save_prefix='%s_train' % save_prefix
-        )
+        if verbosity > 2:
+            b_model.plot_error(
+                mean,
+                b_model.bio_data,
+                var,
+                b_model.data_params,
+                is_random=neg_random,
+                convert_params=False,
+                convert_val=False,
+                save_fig=save_fig,
+                save_prefix='%s_train' % save_prefix
+            )
         ml_models.append(b_model)
 
     if verbosity > 0:
@@ -397,7 +410,8 @@ def main(args):
             params,
             convert_val=True if ml_type.lower() in ['knn', 'lin'] else False,
             save_fig=save_fig,
-            save_prefix='%s_test' % save_prefix
+            save_prefix='%s_test' % save_prefix,
+            verbosity=verbosity
         )
 
 
