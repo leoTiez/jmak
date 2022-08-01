@@ -45,10 +45,10 @@ class ParameterMap(ABC):
             randomise=False,
             num_bins=50,
             val_frac=.2,
-            m_min=.5,
+            m_min=.0,
             m_max=6.,
-            beta_min=1./200.,
-            beta_max=.05,
+            beta_min=1./1000.,
+            beta_max=1./2.,
             rm_percentile=5.,
             random_state=None,
             use_mode=False,
@@ -210,7 +210,8 @@ class ParameterMap(ABC):
             convert_params=True,
             convert_val=True,
             save_fig=True,
-            save_prefix=''
+            save_prefix='',
+            verbosity=3
     ):
         if convert_params:
             params = self.convert(params)
@@ -262,8 +263,9 @@ class ParameterMap(ABC):
         ax3.set_ylabel('#data', fontsize=20)
         fig.tight_layout()
         if save_fig:
-            directory = validate_dir('figures/predict_models')
-            plt.savefig('%s/%s_%s_error_distribution.png' % (directory, save_prefix, self.rmodel.name))
+            if verbosity > 2:
+                directory = validate_dir('figures/predict_models')
+                plt.savefig('%s/%s_%s_error_distribution.png' % (directory, save_prefix, self.rmodel.name))
             plt.close('all')
 
             array_dir = validate_dir('arrays')
