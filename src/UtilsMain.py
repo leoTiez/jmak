@@ -368,13 +368,13 @@ def argparse_predict(arguments):
                         help='Number of neighbour in kNN machine learning model')
     parser.add_argument('--no_tcr', action='store_true', dest='no_tcr',
                         help='If set, programme does not distinguish between TCR and rest.')
-    parser.add_argument('--min_m', type=float, default=.5,
+    parser.add_argument('--min_m', type=float, default=.0,
                         help='Minimum m value that is used for finding and testing correlation.')
     parser.add_argument('--max_m', type=float, default=6.,
                         help='Maximum m value that is used for finding and testing correlation.')
-    parser.add_argument('--min_beta', type=float, default=1./200.,
+    parser.add_argument('--min_beta', type=float, default=1./1000.,
                         help='Minimum beta value that is used for finding and testing correlation.')
-    parser.add_argument('--max_beta', type=float, default=.05,
+    parser.add_argument('--max_beta', type=float, default=1./2.,
                         help='Maximum beta value that is used for finding and testing correlation.')
     parser.add_argument('--test_ratio', type=float, default=.3,
                         help='Ratio of the test data vs training data')
