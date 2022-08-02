@@ -80,6 +80,7 @@ def plot_correlation(
         lgd = plt.legend(['5m', '20m', '60m'], fontsize=24)
         title_str = 'XR vs %s' % ('relative repair' if is_cpd else 'KJMA')
         print(
+            '%s\t' % ('Relative repair' if is_cpd else 'KJMA'),
             '5m, DC: %.3f\t' % corr_5m,
             '20m, DC: %.3f\t' % corr_20m,
             '60m, DC: %.3f\t' % corr_60m,
@@ -95,6 +96,10 @@ def plot_correlation(
     plt.xticks(fontsize=20)
     plt.yticks(fontsize=20)
     plt.tight_layout()
+    if is_cpd:
+        plt.ylim((0, 1))
+    else:
+        plt.ylim((0, 0.25))
     if save_fig:
         directory = validate_dir('figures/derivative')
         plt.savefig('%s/%s_xr_vs_%s_total.png' % (directory, save_prefix, 'relative_repair' if is_cpd else 'kjma'))
