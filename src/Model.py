@@ -74,7 +74,7 @@ class JMAK:
         fit = LinearRegression(fit_intercept=True).fit(log_time, data, sample_weight=weights)
         return fit.coef_[0], np.exp(fit.intercept_ / fit.coef_[0]), fit.score(log_time, data)
 
-    def _estimate_shape_scale(self, max_frac, d_thresh=1e-2):
+    def _estimate_shape_scale(self, max_frac, d_thresh=0.):
         if np.any(max_frac < self.data_points) or np.any(np.isnan(self.data_points)):
             return np.nan, np.nan, np.nan
         dp = self.data_points.copy()
@@ -108,6 +108,7 @@ class JMAK:
             min_f,
             max_f=1.,
             delta_f=.01,
+            d_thresh=0.,
             verbosity=0,
             figsize=(8, 7),
             save_fig=True,
@@ -132,7 +133,7 @@ class JMAK:
             if verbosity > 0:
                 print('Estimate parameters for maximum fraction set to %.2f' % mf)
 
-            m, beta, rs = self._estimate_shape_scale(mf)
+            m, beta, rs = self._estimate_shape_scale(mf, d_thresh=d_thresh)
             if verbosity > 0:
                 print('Estimated parameters for maximum fraction %.2f are\nm=\t%.3f\nbeta=\t%.5f' % (mf, m, beta))
                 if verbosity > 1 and counter < num_cols * num_rows and not np.isnan(rs):
@@ -271,7 +272,7 @@ class Hill:
 
 
 class RegionModel:
-    def __init__(self, time_points, data_points, name=''):
+    def __init__(self, time_points, data_points, name='', d_thresh=0.):
         # Assume that data and time points are reshaped such that the time and data per each model are grouped
         # together in a subarray
         if len(time_points.shape) != 2 or len(data_points.shape) != 2:
@@ -282,14 +283,16 @@ class RegionModel:
         self.data_points = data_points
         self.models = []
         self.name = name
+        self.d_thresh = d_thresh
 
     @staticmethod
-    def iteration(time, data, n, min_f, max_f, delta_f, verbosity, figsize, save_fig, save_prefix):
+    def iteration(time, data, n, min_f, max_f, delta_f, d_thresh, verbosity, figsize, save_fig, save_prefix):
         model = JMAK(time, data, name=n)
         model.estimate_parameters(
             min_f,
             max_f,
             delta_f,
+            d_thresh=d_thresh,
             verbosity=verbosity,
             figsize=figsize,
             save_fig=save_fig,
@@ -318,7 +321,7 @@ class RegionModel:
             for num, (t, d) in enumerate(zip(self.time_points, self.data_points)):
                 self.models.append(self.iteration(
                     t, d, names[num] if names is not None else '',
-                    min_f, max_f, delta_f, verbosity-1, figsize,
+                    min_f, max_f, delta_f, self.d_thresh, verbosity-1, figsize,
                     save_fig, '%s_%s' % (save_prefix, names[num] if names is not None else num))
                 )
         else:
@@ -329,7 +332,7 @@ class RegionModel:
                     models.append(
                         parallel.apply_async(self.iteration,
                                              args=(t, d, names[num] if names is not None else '',
-                                                   min_f, max_f, delta_f, verbosity-1, figsize, save_fig,
+                                                   min_f, max_f, delta_f, self.d_thresh, verbosity-1, figsize, save_fig,
                                                    '%s_%s' % (save_prefix, names[num] if names is not None else num),))
                     )
                 parallel.close()
