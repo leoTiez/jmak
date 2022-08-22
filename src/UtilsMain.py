@@ -113,23 +113,25 @@ def create_models(
                 if no_tcr:
                     example_genes = filter(lambda x: x.name in ['chrI YAL048C', 'chrVIII YHL025W'], region_model.models)
                     for gene in example_genes:
-                        plt.figure(figsize=(8, 7))
-                        plt.scatter(gene.time_points, gene.data_points, color='blue', label='Data')
-                        plt.plot(np.arange(140), gene.repair_fraction_over_time(140), 'b--', label='Estimation')
-                        if plot_derivative:
-                            plt.plot(
-                                np.arange(140),
-                                gene.repair_derivative_over_time(140),
-                                color='orange',
-                                linestyle='--',
-                                label='Derivative'
-                            )
-                        plt.legend(loc='center right', fontsize=20)
+                        fig, ax1 = plt.subplots(figsize=(8, 7))
+                        ax1.scatter(gene.time_points, gene.data_points, color='blue', label='Data')
+                        ax1.plot(np.arange(140), gene.repair_fraction_over_time(140), 'b--', label='Estimation')
+                        ax2 = ax1.twinx()
+                        ax2.plot(
+                            np.arange(140),
+                            gene.repair_derivative_over_time(140),
+                            color='orange',
+                            linestyle='--',
+                            label='Derivative'
+                        )
                         plt.title('Repair evolution: %s' % gene.name, fontsize=30)
-                        plt.xticks(fontsize=16)
-                        plt.yticks(fontsize=16)
-                        plt.xlabel('Time (min)', fontsize=20)
-                        plt.ylabel('Repair fraction', fontsize=20)
+                        ax1.tick_params(axis='x', labelsize=20)
+                        ax1.tick_params(axis='y', labelsize=20)
+                        ax2.tick_params(axis='y', labelsize=20)
+                        ax1.set_xlabel('Time (min)', fontsize=24)
+                        ax1.set_ylabel(r'$f(t)$', color='blue', fontsize=24)
+                        ax2.set_ylabel(r'$df(t)$', color='orange', fontsize=24)
+                        fig.tight_layout()
                         if save_fig:
                             directory = validate_dir('figures/examples')
                             plt.savefig('%s/%s_repair_evolution_%s.png' % (directory, save_prefix, gene.name))
