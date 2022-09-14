@@ -2,6 +2,11 @@
 
 [![DOI](https://zenodo.org/badge/429457913.svg)](https://zenodo.org/badge/latestdoi/429457913)
 
+If you found our analysis pipeline useful for your own research projects, please consider citing:
+Zeitler L, Denby Wilkes C, Goldar A, Soutourina J (2022) 
+A quantitative modelling approach for DNA repair on a population scale.
+PLoS Comput Biol 18(9): e1010488. https://doi.org/10.1371/journal.pcbi.1010488
+
 ## Introduction
 The great advances of sequencing technologies allow the *in vivo* measurement of nuclear processes---such as DNA repair 
 after UV exposure---over entire cell populations. However, data sets usually contain only a few samples over several 
@@ -18,6 +23,8 @@ scale.
 *Update March 31, 2022*: The paper presenting and explaining the model has been uploaded on [bioRxiv](https://doi.org/10.1101/2022.03.29.486283). Please cite the work if you want to make use of the pipeline. 
 
 *Update June 20, 2022*: A revised version of the paper removing focus from the physical KJMA model and motivating the equations from a biological point of view is currently under review.
+
+*Update September 12, 2022*: Published paper was published by [PLOS Computational Biology](https://doi.org/10.1371/journal.pcbi.1010488). 
 
 ## The Model
 We assume that NGS data represents the cumulative effect of independent cells. In a single cell, CPD damage describes
