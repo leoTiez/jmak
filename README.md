@@ -3,9 +3,27 @@
 [![DOI](https://zenodo.org/badge/429457913.svg)](https://zenodo.org/badge/latestdoi/429457913)
 
 If you found our analysis pipeline useful for your own research projects, please consider citing:
+
 Zeitler L, Denby Wilkes C, Goldar A, Soutourina J (2022) 
 A quantitative modelling approach for DNA repair on a population scale.
 PLoS Comput Biol 18(9): e1010488. https://doi.org/10.1371/journal.pcbi.1010488
+
+or in BibTeX format
+```
+@article{10.1371/journal.pcbi.1010488,
+    doi = {10.1371/journal.pcbi.1010488},
+    author = {Zeitler, Leo AND Denby Wilkes, Cyril AND Goldar, Arach AND Soutourina, Julie},
+    journal = {PLOS Computational Biology},
+    publisher = {Public Library of Science},
+    title = {A quantitative modelling approach for DNA repair on a population scale},
+    year = {2022},
+    month = {09},
+    volume = {18},
+    url = {https://doi.org/10.1371/journal.pcbi.1010488},
+    pages = {1-21},
+    number = {9},
+}
+```
 
 ## Introduction
 The great advances of sequencing technologies allow the *in vivo* measurement of nuclear processes---such as DNA repair 
