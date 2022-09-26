@@ -42,7 +42,7 @@ scale.
 
 *Update June 20, 2022*: A revised version of the paper removing focus from the physical KJMA model and motivating the equations from a biological point of view is currently under review.
 
-*Update September 12, 2022*: Published paper was published by [PLOS Computational Biology](https://doi.org/10.1371/journal.pcbi.1010488). 
+*Update September 12, 2022*: Paper was published by [PLOS Computational Biology](https://doi.org/10.1371/journal.pcbi.1010488). 
 
 ## The Model
 We assume that NGS data represents the cumulative effect of independent cells. In a single cell, CPD damage describes
